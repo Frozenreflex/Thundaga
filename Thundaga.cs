@@ -65,6 +65,28 @@ namespace Thundaga
     public static class PacketManager
     {
         public static List<IConnectorPacket> NeosPacketQueue = new List<IConnectorPacket>();
+        public static List<IConnectorPacket> IntermittentPacketQueue = new List<IConnectorPacket>();
         public static void Enqueue(IConnectorPacket packet) => NeosPacketQueue.Add(packet);
+
+        //call this at the end of the neos update loop
+        public static void FinishNeosQueue()
+        {
+            lock (IntermittentPacketQueue)
+            {
+                IntermittentPacketQueue.AddRange(NeosPacketQueue);
+                NeosPacketQueue.Clear();
+            }
+        }
+
+        //call this in place of frooxengine's update method within the unity update loop
+        public static List<IConnectorPacket> GetQueuedPackets()
+        {
+            lock (IntermittentPacketQueue)
+            {
+                var packets = new List<IConnectorPacket>(IntermittentPacketQueue);
+                IntermittentPacketQueue.Clear();
+                return packets;
+            }
+        }
     }
 }
