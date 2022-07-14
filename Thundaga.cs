@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿using System.Collections.Generic;
+using HarmonyLib;
 using NeosModLoader;
 using System.Linq;
 using System.Reflection;
@@ -40,9 +41,7 @@ namespace Thundaga
             }
             harmony.PatchAll();
         }
-        
     }
-
     public interface IConnectorPacket
     {
         void ApplyChange();
@@ -61,5 +60,11 @@ namespace Thundaga
         public static SlotConnectorPacket GetPacket(this SlotConnector connector) => new SlotConnectorPacket(connector);
         public static SlotConnectorDestroyPacket GetDestroyPacket(this SlotConnector connector, bool destroyingWorld) =>
             new SlotConnectorDestroyPacket(connector, destroyingWorld);
+    }
+
+    public static class PacketManager
+    {
+        public static List<IConnectorPacket> NeosPacketQueue = new List<IConnectorPacket>();
+        public static void Enqueue(IConnectorPacket packet) => NeosPacketQueue.Add(packet);
     }
 }

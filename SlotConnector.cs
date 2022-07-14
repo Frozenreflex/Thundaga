@@ -37,7 +37,7 @@ namespace Thundaga
             if (owner.Rotation_Field.GetWasChangedAndClear()) _rotation = owner.Rotation_Field.Value.ToUnity();
             if (owner.Scale_Field.GetWasChangedAndClear()) _scale = owner.Scale_Field.Value.ToUnity();
             _shouldUpdateParent = 
-                (_parentConnector != SlotConnectorInfo.ParentConnector.GetValue(_connector) && parent != null) &&
+                _parentConnector != SlotConnectorInfo.ParentConnector.GetValue(_connector) && parent != null &&
                 !(SlotConnectorInfo.LastParent.GetValue(_connector) == parent && !owner.IsRootSlot);
         }
         public override void ApplyChange()
@@ -128,6 +128,22 @@ namespace Thundaga
             
             UpdateLayer(__instance);
             SetData(__instance);
+            return false;
+        }
+        
+        [HarmonyPatch("ApplyChanges")]
+        [HarmonyPrefix]
+        private bool ApplyChanges(SlotConnector __instance)
+        {
+            PacketManager.Enqueue(__instance.GetPacket());
+            return false;
+        }
+        
+        [HarmonyPatch("Destroy")]
+        [HarmonyPrefix]
+        private bool Destroy(SlotConnector __instance, bool destroyingWorld)
+        {
+            PacketManager.Enqueue(__instance.GetDestroyPacket(destroyingWorld));
             return false;
         }
         
