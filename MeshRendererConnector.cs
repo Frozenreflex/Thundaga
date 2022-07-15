@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using HarmonyLib;
 using UnityEngine;
 using UnityNeos;
@@ -31,12 +32,9 @@ namespace Thundaga
             {
                 if (_connector.MeshRenderer == null)
                 {
-                    var gameObject = new GameObject("");
-                    var go = MeshRendererConnectorPatches.get_attachedGameObject(_connector);
-                    gameObject.transform.SetParent(go.transform, false);
-                    gameObject.layer = go.layer;
+                    var gameObject = MeshRendererConnectorPatches.get_attachedGameObject(_connector);
                     if (MeshRendererConnectorPatches.get_UseMeshFilter(_connector))
-                        //_connector.meshFilter = gameObject.AddComponent<MeshFilter>();
+                        MeshRendererConnectorInfo.MeshFilter.SetValue(_connector, gameObject.AddComponent<MeshFilter>());
                     MeshRendererConnectorPatches.set_MeshRenderer(_connector, gameObject.AddComponent<MeshRenderer>());
                     OnAttachRenderer();
                 }
@@ -45,6 +43,16 @@ namespace Thundaga
             {
                 
             }
+        }
+    }
+    
+    public static class MeshRendererConnectorInfo
+    {
+        public static readonly FieldInfo MeshFilter;
+
+        static MeshRendererConnectorInfo()
+        {
+            MeshFilter = typeof(MeshRendererConnector).GetField("meshFilter", AccessTools.all);
         }
     }
 
