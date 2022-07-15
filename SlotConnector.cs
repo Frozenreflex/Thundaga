@@ -86,8 +86,9 @@ namespace Thundaga
 
     public static class SlotConnectorInfo
     {
-        //todo: find a way to convert these to delegates for better performance, packets are created and deleted constantly
-        //so we can't store the delegates inside of them
+        //todo: either convert these to something else like delegates or something harmony can do, or make sure they
+        //run on specific threads to balance the load between them
+        //fieldinfo is not optimal at all
         public static readonly FieldInfo ParentConnector;
         public static readonly FieldInfo Transform;
         public static readonly FieldInfo LastParent;

@@ -40,6 +40,19 @@ namespace Thundaga
                 }
             }
             harmony.PatchAll();
+            switch (Engine.Current.Platform)
+            {
+                case Platform.Windows:
+                    //run windows specific patches
+                    //viseme analyzer
+                    break;
+                case Platform.Linux:
+                    //run linux specific patches
+                    break;
+                case Platform.Android:
+                    //run android specific patches
+                    break;
+            }
         }
     }
     public interface IConnectorPacket
