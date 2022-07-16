@@ -30,6 +30,13 @@ namespace Thundaga
         private int? _sortingOrder;
         private ShadowCastingMode? _shadowCastingMode;
         private MotionVectorGenerationMode? _motionVectorGenerationMode;
+
+        private bool _proxyBoundsSourceChanged;
+        private bool _ExplicitLocalBoundsChanged;
+        private bool _bonesChanged;
+        private bool _blendshapeWeightsChanged;
+        private SkinnedBounds _skinnedBounds;
+        private BoundingBox _explicitLocalBounds;
         public SkinnedMeshRendererConnectorPacket(SkinnedMeshRendererConnector connector)
         {
             _connector = connector;
@@ -47,6 +54,21 @@ namespace Thundaga
             _materialCount = _materials.Length;
             _materialPropertyBlocks = owner.MaterialPropertyBlocks.ToArray();
             _materialPropertyBlockCount = _materialPropertyBlocks.Length;
+            
+            _skinnedBounds = owner.BoundsComputeMethod.Value;
+            if (_skinnedBounds == SkinnedBounds.Static && owner.Slot.ActiveUserRoot == owner.LocalUserRoot)
+                _skinnedBounds = SkinnedBounds.FastDisjointRootApproximate;
+            if (_meshWasChanged)
+            {
+                _proxyBoundsSourceChanged = owner.ProxyBoundsSource.WasChanged;
+                _ExplicitLocalBoundsChanged = owner.ExplicitLocalBounds.WasChanged;
+                _bonesChanged = owner.BonesChanged;
+                _blendshapeWeightsChanged = owner.BlendShapeWeightsChanged;
+                owner.ProxyBoundsSource.WasChanged = false;
+                owner.ExplicitLocalBounds.WasChanged = false;
+                owner.BonesChanged = false;
+                owner.BlendShapeWeightsChanged = false;
+            }
             
             if (!_isAssetAvailable) return;
             if (owner.SortingOrder.GetWasChangedAndClear()) _sortingOrder = owner.SortingOrder.Value;
@@ -78,11 +100,7 @@ namespace Thundaga
                     SkinnedMeshRendererConnectorPatches.set_MeshRenderer(_connector, gameObject.AddComponent<SkinnedMeshRenderer>());
                     OnAttachRenderer();
                 }
-                if (_meshWasChanged)
-                {
-                    var unity = _mesh.GetUnity();
-                    AssignMesh(renderer, unity);
-                }
+                if (_meshWasChanged) AssignMesh(renderer, _mesh.GetUnity());
                 var updatePropertyBlocksAnyway = false;
                 if (_materialsChanged || _meshWasChanged)
                 {
@@ -96,43 +114,126 @@ namespace Thundaga
                     {
                         unityMaterials = unityMaterials.EnsureExactSize(_materialCount, allowZeroSize: true);
                         for (var i = 0; i < _materialCount; i++)
-                        {
                             unityMaterials[i] = _materials[i]?.Asset.GetUnity(nullMaterial);
-                        }
                         renderer.sharedMaterials = unityMaterials;
                         SkinnedMeshRendererConnectorInfo.UnityMaterials.SetValue(_connector, unityMaterials);
                         SkinnedMeshRendererConnectorInfo.MaterialCount.SetValue(_connector, _materialCount);
                     }
                     else
-                    {
-                        renderer.sharedMaterial = _materialCount == 1 ? _materials[0]?.Asset.GetUnity(nullMaterial) : nullMaterial;
-                    }
+                        renderer.sharedMaterial = _materialCount == 1
+                            ? _materials[0]?.Asset.GetUnity(nullMaterial)
+                            : nullMaterial;
                 }
                 if (_materialPropertyBlocksChanged || updatePropertyBlocksAnyway)
-                {
                     for (var i = 0; i < _materialCount; i++)
-                    {
                         renderer.SetPropertyBlock(
                             i < _materialPropertyBlockCount ? _materialPropertyBlocks[i]?.Asset.GetUnity() : null, i);
-                    }
-                }
                 if (renderer.enabled != _enabled) renderer.enabled = _enabled;
                 if (_sortingOrder.HasValue) renderer.sortingOrder = _sortingOrder.Value;
                 if (_shadowCastingMode.HasValue) renderer.shadowCastingMode = _shadowCastingMode.Value;
                 if (_motionVectorGenerationMode.HasValue)
                     renderer.motionVectorGenerationMode = _motionVectorGenerationMode.Value;
+
+                if (_meshWasChanged || (SkinnedBounds)SkinnedMeshRendererConnectorInfo.CurrentBoundsMethod.GetValue(_connector) != _skinnedBounds ||
+                    _proxyBoundsSourceChanged || _ExplicitLocalBoundsChanged)
+                {
+                    if (_skinnedBounds != SkinnedBounds.Static && _skinnedBounds != SkinnedBounds.Proxy &&
+                        _skinnedBounds != SkinnedBounds.Explicit)
+                    {
+                        if (_connector._boundsUpdater == null)
+                        {
+                            SkinnedMeshRendererConnectorPatches.set_LocalBoundingBoxAvailable(_connector, false);
+                            _connector._boundsUpdater = _connector.MeshRenderer.gameObject.AddComponent<SkinBoundsUpdater>();
+                            _connector._boundsUpdater.connector = this;
+                        }
+                        _connector._boundsUpdater.boundsMethod = _skinnedBounds;
+                        _connector._boundsUpdater.boneMetadata = _mesh.BoneMetadata;
+                        _connector._boundsUpdater.approximateBounds = _mesh.ApproximateBoneBounds;
+                        _connector.MeshRenderer.updateWhenOffscreen = _skinnedBounds == SkinnedBounds.SlowRealtimeAccurate;
+                    }
+                    else
+                    {
+                        if (_connector._boundsUpdater != null)
+                        {
+                            SkinnedMeshRendererConnectorPatches.set_LocalBoundingBoxAvailable(_connector, false);
+                            _connector.MeshRenderer.updateWhenOffscreen = false;
+                            CleanupBoundsUpdater();
+                        }
+                        switch (_skinnedBounds)
+                        {
+                            case SkinnedBounds.Proxy:
+                            {
+                                CleanupProxy();
+                                _connector._proxySource = _connector.Owner.ProxyBoundsSource.Target?.SkinConnector as SkinnedMeshRendererConnector;
+                                if (_connector._proxySource != null)
+                                {
+                                    _connector._proxySource.BoundsUpdated += ProxyBoundsUpdated;
+                                    ProxyBoundsUpdated();
+                                }
+                                break;
+                            }
+                            case SkinnedBounds.Explicit:
+                                _connector.MeshRenderer.localBounds = _connector.Owner.ExplicitLocalBounds.Value.ToUnity();
+                                SkinnedMeshRendererConnectorPatches.set_LocalBoundingBoxAvailable(_connector, true);
+                                SendBoundsUpdated();
+                                break;
+                        }
+                    }
+                }
+                if (_bonesChanged || _meshWasChanged)
+                {
+                    var num2 = _mesh?.Data?.BoneCount;
+                    var num3 = _mesh?.Data?.BlendShapeCount;
+                    var flag2 = num2 == 0 && num3 > 0;
+                    if (flag2) num2 = 1;
+                    _connector.bones = _connector.bones.EnsureExactSize(num2.GetValueOrDefault());
+                    if (_connector.bones != null)
+                    {
+                        if (flag2)
+                        {
+                            _connector.bones[0] = _connector.attachedGameObject.transform;
+                        }
+                        else
+                        {
+                            var num4 = MathX.Min(_connector.bones.Length, _connector.Owner.Bones.Count);
+                            var num5 = 0;
+                            for (var i = 0; i < num4; i++)
+                            {
+                                var slotConnector = _connector.Owner.Bones[i]?.Connector as SlotConnector;
+                                if (slotConnector == null) continue;
+                                _connector.bones[i] = slotConnector.ForceGetGameObject().transform;
+                                num5++;
+                            }
+                        }
+                    }
+                    _connector.MeshRenderer.bones = _connector.bones;
+                    _connector.MeshRenderer.rootBone = flag2 ? _connector.attachedGameObject.transform : (_connector.Owner.GetRootBone()?.Connector as SlotConnector)?.ForceGetGameObject().transform;
+                }
+                if (_blendshapeWeightsChanged || _meshWasChanged)
+                {
+                    int valueOrDefault = (_connector.Owner.Mesh.Asset?.Data?.BlendShapeCount).GetValueOrDefault();
+                    var j = 0;
+                    SyncFieldList<float> blendShapeWeights = _connector.Owner.BlendShapeWeights;
+                    for (var num6 = MathX.Min(valueOrDefault, blendShapeWeights.Count); j < num6; j++)
+                    {
+                        _connector.MeshRenderer.SetBlendShapeWeight(j, blendShapeWeights[j]);
+                    }
+                    for (; j < valueOrDefault; j++)
+                    {
+                        _connector.MeshRenderer.SetBlendShapeWeight(j, 0f);
+                    }
+                }
+                SendBoundsUpdated();
             }
             else CleanupRenderer();
         }
 
         public void CleanupRenderer()
         {
-            if (_connector.MeshRenderer != null && _connector.MeshRenderer.gameObject)
-            {
-                Object.Destroy(_connector.MeshRenderer);
-                var filter = (MeshFilter)MeshRendererConnectorInfo.MeshFilter.GetValue(_connector);
-                if (filter != null) Object.Destroy(filter);
-            }
+            if (_connector.MeshRenderer == null || !_connector.MeshRenderer.gameObject) return;
+            Object.Destroy(_connector.MeshRenderer);
+            var filter = (MeshFilter)MeshRendererConnectorInfo.MeshFilter.GetValue(_connector);
+            if (filter != null) Object.Destroy(filter);
         }
     }
     public class SkinnedMeshRendererConnectorDestroyPacket : ConnectorPacket<SkinnedMeshRendererConnector>
@@ -163,12 +264,14 @@ namespace Thundaga
         public static readonly FieldInfo MeshFilter;
         public static readonly FieldInfo MaterialCount;
         public static readonly FieldInfo UnityMaterials;
+        public static readonly FieldInfo CurrentBoundsMethod;
 
         static SkinnedMeshRendererConnectorInfo()
         {
             MeshFilter = typeof(MeshRendererConnector).GetField("meshFilter", AccessTools.all);
             MaterialCount = typeof(MeshRendererConnector).GetField("materialCount", AccessTools.all);
             UnityMaterials = typeof(MeshRendererConnector).GetField("unityMaterials", AccessTools.all);
+            CurrentBoundsMethod = typeof(MeshRendererConnector).GetField("_currentBoundsMethod", AccessTools.all);
         }
     }
 
@@ -184,6 +287,12 @@ namespace Thundaga
         [HarmonyPatch("set_MeshRenderer")]
         [HarmonyReversePatch]
         public static void set_MeshRenderer(SkinnedMeshRendererConnector instance, SkinnedMeshRenderer value)
+        {
+            throw new NotImplementedException();
+        }
+        [HarmonyPatch("set_LocalBoundingBoxAvailable")]
+        [HarmonyReversePatch]
+        public static void set_LocalBoundingBoxAvailable(SkinnedMeshRendererConnector instance, bool value)
         {
             throw new NotImplementedException();
         }

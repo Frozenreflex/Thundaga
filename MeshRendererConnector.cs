@@ -55,18 +55,6 @@ namespace Thundaga
             if (owner.MotionVectorMode.GetWasChangedAndClear())
                 _motionVectorGenerationMode = owner.MotionVectorMode.Value.ToUnity();
         }
-
-        protected virtual void OnAttachRenderer()
-        {
-        }
-        
-        protected virtual void OnCleanupRenderer()
-        {
-        }
-
-        protected virtual void AssignMesh(Renderer renderer, Mesh mesh)
-        {
-        }
         public override void ApplyChange()
         {
             if (_isAssetAvailable)
@@ -78,13 +66,10 @@ namespace Thundaga
                     MeshRendererConnectorInfo.MeshFilter.SetValue(_connector,
                         gameObject.AddComponent<MeshFilter>());
                     MeshRendererConnectorPatches.set_MeshRenderer(_connector, gameObject.AddComponent<MeshRenderer>());
-                    OnAttachRenderer();
                 }
                 if (_meshWasChanged)
-                {
-                    var unity = _mesh.GetUnity();
-                    ((MeshFilter)MeshRendererConnectorInfo.MeshFilter.GetValue(_connector)).sharedMesh = unity;
-                }
+                    ((MeshFilter) MeshRendererConnectorInfo.MeshFilter.GetValue(_connector)).sharedMesh =
+                        _mesh.GetUnity();
                 var updatePropertyBlocksAnyway = false;
                 if (_materialsChanged || _meshWasChanged)
                 {
@@ -106,18 +91,14 @@ namespace Thundaga
                         MeshRendererConnectorInfo.MaterialCount.SetValue(_connector, _materialCount);
                     }
                     else
-                    {
-                        renderer.sharedMaterial = _materialCount == 1 ? _materials[0]?.Asset.GetUnity(nullMaterial) : nullMaterial;
-                    }
+                        renderer.sharedMaterial = _materialCount == 1
+                            ? _materials[0]?.Asset.GetUnity(nullMaterial)
+                            : nullMaterial;
                 }
                 if (_materialPropertyBlocksChanged || updatePropertyBlocksAnyway)
-                {
                     for (var i = 0; i < _materialCount; i++)
-                    {
                         renderer.SetPropertyBlock(
                             i < _materialPropertyBlockCount ? _materialPropertyBlocks[i]?.Asset.GetUnity() : null, i);
-                    }
-                }
                 if (renderer.enabled != _enabled) renderer.enabled = _enabled;
                 if (_sortingOrder.HasValue) renderer.sortingOrder = _sortingOrder.Value;
                 if (_shadowCastingMode.HasValue) renderer.shadowCastingMode = _shadowCastingMode.Value;
@@ -129,12 +110,10 @@ namespace Thundaga
 
         public void CleanupRenderer()
         {
-            if (_connector.MeshRenderer != null && _connector.MeshRenderer.gameObject)
-            {
-                Object.Destroy(_connector.MeshRenderer);
-                var filter = (MeshFilter)MeshRendererConnectorInfo.MeshFilter.GetValue(_connector);
-                if (filter != null) Object.Destroy(filter);
-            }
+            if (_connector.MeshRenderer == null || !_connector.MeshRenderer.gameObject) return;
+            Object.Destroy(_connector.MeshRenderer);
+            var filter = (MeshFilter)MeshRendererConnectorInfo.MeshFilter.GetValue(_connector);
+            if (filter != null) Object.Destroy(filter);
         }
     }
     public class MeshRendererConnectorDestroyPacket : ConnectorPacket<MeshRendererConnector>
