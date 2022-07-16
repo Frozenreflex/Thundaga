@@ -16,6 +16,124 @@ namespace Thundaga
 {
     public class SkinnedMeshRendererConnectorPacket : ConnectorPacket<SkinnedMeshRendererConnector>
     {
+        public SkinnedMeshRendererConnectorPacket(SkinnedMeshRendererConnector connector)
+        {
+            _connector = connector;
+        }
+        public override void ApplyChange()
+        {
+            SkinnedMeshRendererConnectorPatches.ApplyChangesOriginal(_connector);
+        }
+    }
+    public class SkinnedMeshRendererConnectorDestroyPacket : ConnectorPacket<SkinnedMeshRendererConnector>
+    {
+        private bool _destroyingWorld;
+        public SkinnedMeshRendererConnectorDestroyPacket(SkinnedMeshRendererConnector connector, bool destroyingWorld)
+        {
+            _connector = connector;
+            _destroyingWorld = destroyingWorld;
+        }
+        public override void ApplyChange()
+        {
+            SkinnedMeshRendererConnectorPatches.CleanupProxy(_connector);
+            var bounds = (Object)SkinnedMeshRendererConnectorInfo.BoundsUpdater.GetValue(_connector);
+            //this errors, but not having this is a potential memory leak
+            //_connector.BoundsUpdated = null;
+            if (bounds != null)
+            {
+                if (!_destroyingWorld && bounds)
+                    Object.Destroy(bounds);
+                SkinnedMeshRendererConnectorInfo.BoundsUpdater.SetValue(_connector, null);
+            }
+            SkinnedMeshRendererConnectorInfo.Bones.SetValue(_connector, null);
+            
+            CleanupRenderer(_destroyingWorld);
+            SkinnedMeshRendererConnectorInfo.UnityMaterials.SetValue(_connector, null);
+            SkinnedMeshRendererConnectorInfo.MeshFilter.SetValue(_connector, null);
+            SkinnedMeshRendererConnectorPatches.set_MeshRenderer(_connector, null);
+        }
+        public void CleanupRenderer(bool destroyingWorld)
+        {
+            if (destroyingWorld || _connector.MeshRenderer == null || !_connector.MeshRenderer.gameObject) return;
+            Object.Destroy(_connector.MeshRenderer);
+        }
+    }
+    public static class SkinnedMeshRendererConnectorInfo
+    {
+        public static readonly FieldInfo MeshFilter;
+        public static readonly FieldInfo UnityMaterials;
+        public static readonly FieldInfo BoundsUpdater;
+        public static readonly FieldInfo Bones;
+        public static readonly EventInfo BoundsUpdated;
+
+        static SkinnedMeshRendererConnectorInfo()
+        {
+            MeshFilter = typeof(SkinnedMeshRendererConnector).GetField("meshFilter", AccessTools.all);
+            UnityMaterials = typeof(SkinnedMeshRendererConnector).GetField("unityMaterials", AccessTools.all);
+            BoundsUpdater = typeof(SkinnedMeshRendererConnector).GetField("_boundsUpdater", AccessTools.all);
+            Bones = typeof(SkinnedMeshRendererConnector).GetField("bones", AccessTools.all);
+            BoundsUpdated = typeof(SkinnedMeshRendererConnector).GetEvent("BoundsUpdated", AccessTools.all);
+        }
+    }
+    [HarmonyPatch(typeof(SkinnedMeshRendererConnector))]
+    public static class SkinnedMeshRendererConnectorPatches
+    {
+        [HarmonyPatch("ApplyChanges")]
+        [HarmonyPrefix]
+        private static bool ApplyChanges(SkinnedMeshRendererConnector __instance)
+        {
+            PacketManager.Enqueue(__instance.GetPacket());
+            return false;
+        }
+        [HarmonyPatch("Destroy")]
+        [HarmonyPrefix]
+        private static bool Destroy(SkinnedMeshRendererConnector __instance, bool destroyingWorld)
+        {
+            SkinnedMeshRendererConnectorPatches.CleanupProxy(__instance);
+            var bounds = (Object)SkinnedMeshRendererConnectorInfo.BoundsUpdater.GetValue(__instance);
+            //this errors, but not having this is a potential memory leak
+            //__instance.BoundsUpdated = null;
+            if (bounds != null)
+            {
+                if (!destroyingWorld && bounds)
+                    Object.Destroy(bounds);
+                SkinnedMeshRendererConnectorInfo.BoundsUpdater.SetValue(__instance, null);
+            }
+            SkinnedMeshRendererConnectorInfo.Bones.SetValue(__instance, null);
+
+            if (!destroyingWorld && __instance.MeshRenderer != null && __instance.MeshRenderer.gameObject)
+                Object.Destroy(__instance.MeshRenderer);
+            
+            SkinnedMeshRendererConnectorInfo.UnityMaterials.SetValue(__instance, null);
+            SkinnedMeshRendererConnectorInfo.MeshFilter.SetValue(__instance, null);
+            set_MeshRenderer(__instance, null);
+            
+            return false;
+        }
+        //this executes the original version of ApplyChanges, not the patched version that only enqueues the packet
+        [HarmonyPatch("ApplyChanges")]
+        [HarmonyReversePatch]
+        public static void ApplyChangesOriginal(SkinnedMeshRendererConnector instance)
+        {
+            throw new NotImplementedException();
+        }
+        [HarmonyPatch("set_MeshRenderer")]
+        [HarmonyReversePatch]
+        public static void set_MeshRenderer(SkinnedMeshRendererConnector instance, SkinnedMeshRenderer value)
+        {
+            throw new NotImplementedException();
+        }
+        [HarmonyPatch("CleanupProxy")]
+        [HarmonyReversePatch]
+        public static void CleanupProxy(SkinnedMeshRendererConnector instance)
+        {
+            throw new NotImplementedException();
+        }
+    }
+    //since i have to access so many internal or private objects here, i'm going to try something else instead
+    /*
+    public class SkinnedMeshRendererConnectorPacket : ConnectorPacket<SkinnedMeshRendererConnector>
+    {
         private bool _isAssetAvailable;
         private bool _meshWasChanged;
         private bool _materialsChanged;
@@ -137,23 +255,25 @@ namespace Thundaga
                 if (_meshWasChanged || (SkinnedBounds)SkinnedMeshRendererConnectorInfo.CurrentBoundsMethod.GetValue(_connector) != _skinnedBounds ||
                     _proxyBoundsSourceChanged || _ExplicitLocalBoundsChanged)
                 {
+                    var skinBoundsUpdaterType = typeof(SkinnedMeshRendererConnector).Assembly.GetType("SkinBoundsUpdater");
+                    var boundsUpdater = SkinnedMeshRendererConnectorInfo.BoundsUpdater.GetValue(_connector) as SkinBoundsUpdater;
                     if (_skinnedBounds != SkinnedBounds.Static && _skinnedBounds != SkinnedBounds.Proxy &&
                         _skinnedBounds != SkinnedBounds.Explicit)
                     {
-                        if (_connector._boundsUpdater == null)
+                        if (boundsUpdater == null)
                         {
                             SkinnedMeshRendererConnectorPatches.set_LocalBoundingBoxAvailable(_connector, false);
-                            _connector._boundsUpdater = _connector.MeshRenderer.gameObject.AddComponent<SkinBoundsUpdater>();
-                            _connector._boundsUpdater.connector = this;
+                            boundsUpdater = _connector.MeshRenderer.gameObject.AddComponent<SkinBoundsUpdater>();
+                            boundsUpdater.connector = _connector;
                         }
-                        _connector._boundsUpdater.boundsMethod = _skinnedBounds;
-                        _connector._boundsUpdater.boneMetadata = _mesh.BoneMetadata;
-                        _connector._boundsUpdater.approximateBounds = _mesh.ApproximateBoneBounds;
+                        boundsUpdater.boundsMethod = _skinnedBounds;
+                        boundsUpdater.boneMetadata = _mesh.BoneMetadata;
+                        boundsUpdater.approximateBounds = _mesh.ApproximateBoneBounds;
                         _connector.MeshRenderer.updateWhenOffscreen = _skinnedBounds == SkinnedBounds.SlowRealtimeAccurate;
                     }
                     else
                     {
-                        if (_connector._boundsUpdater != null)
+                        if (boundsUpdater != null)
                         {
                             SkinnedMeshRendererConnectorPatches.set_LocalBoundingBoxAvailable(_connector, false);
                             _connector.MeshRenderer.updateWhenOffscreen = false;
@@ -265,6 +385,7 @@ namespace Thundaga
         public static readonly FieldInfo MaterialCount;
         public static readonly FieldInfo UnityMaterials;
         public static readonly FieldInfo CurrentBoundsMethod;
+        public static readonly FieldInfo BoundsUpdater;
 
         static SkinnedMeshRendererConnectorInfo()
         {
@@ -272,6 +393,7 @@ namespace Thundaga
             MaterialCount = typeof(MeshRendererConnector).GetField("materialCount", AccessTools.all);
             UnityMaterials = typeof(MeshRendererConnector).GetField("unityMaterials", AccessTools.all);
             CurrentBoundsMethod = typeof(MeshRendererConnector).GetField("_currentBoundsMethod", AccessTools.all);
+            BoundsUpdater = typeof(MeshRendererConnector).GetField("_boundsUpdater", AccessTools.all);
         }
     }
 
@@ -297,4 +419,5 @@ namespace Thundaga
             throw new NotImplementedException();
         }
     }
+    Z*/
 }

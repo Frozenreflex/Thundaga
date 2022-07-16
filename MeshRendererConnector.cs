@@ -154,7 +154,7 @@ namespace Thundaga
     }
 
     [HarmonyPatch(typeof(MeshRendererConnector))]
-    public class MeshRendererConnectorPatches
+    public static class MeshRendererConnectorPatches
     {
         [HarmonyPatch("get_attachedGameObject")]
         [HarmonyReversePatch]

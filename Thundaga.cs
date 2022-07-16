@@ -73,6 +73,8 @@ namespace Thundaga
         public static SlotConnectorPacket GetPacket(this SlotConnector connector) => new SlotConnectorPacket(connector);
         public static SlotConnectorDestroyPacket GetDestroyPacket(this SlotConnector connector, bool destroyingWorld) =>
             new SlotConnectorDestroyPacket(connector, destroyingWorld);
+        public static SkinnedMeshRendererConnectorPacket GetPacket(this SkinnedMeshRendererConnector connector) =>
+            new SkinnedMeshRendererConnectorPacket(connector);
     }
 
     public static class PacketManager
