@@ -16,12 +16,26 @@ namespace Thundaga
 {
     public class SkinnedMeshRendererConnectorPacket : ConnectorPacket<SkinnedMeshRendererConnector>
     {
+        private bool _isAssetAvailable;
         public SkinnedMeshRendererConnectorPacket(SkinnedMeshRendererConnector connector)
         {
             _connector = connector;
+            _isAssetAvailable = connector.Owner.Mesh.IsAssetAvailable;
         }
         public override void ApplyChange()
         {
+            //attempting to weave between each and every private, internal, and protected var was too much for my brain
+            //this should really only deviate from normal when rapidly driving the materials or the render methods,
+            //but you really shouldn't be doing that anyway
+            
+            //this will apply the gameobject patches that i'm doing throughout that prevent the constant
+            //gameobject creation and deletion, before going back to normal execution
+            var renderer = _connector.MeshRenderer;
+            if (renderer == null && _isAssetAvailable)
+            {
+                var gameObject = SkinnedMeshRendererConnectorPatches.get_attachedGameObject(_connector);
+                SkinnedMeshRendererConnectorPatches.set_MeshRenderer(_connector, gameObject.AddComponent<SkinnedMeshRenderer>());
+            }
             SkinnedMeshRendererConnectorPatches.ApplyChangesOriginal(_connector);
         }
     }
@@ -49,7 +63,6 @@ namespace Thundaga
             
             CleanupRenderer(_destroyingWorld);
             SkinnedMeshRendererConnectorInfo.UnityMaterials.SetValue(_connector, null);
-            SkinnedMeshRendererConnectorInfo.MeshFilter.SetValue(_connector, null);
             SkinnedMeshRendererConnectorPatches.set_MeshRenderer(_connector, null);
         }
         public void CleanupRenderer(bool destroyingWorld)
@@ -60,7 +73,6 @@ namespace Thundaga
     }
     public static class SkinnedMeshRendererConnectorInfo
     {
-        public static readonly FieldInfo MeshFilter;
         public static readonly FieldInfo UnityMaterials;
         public static readonly FieldInfo BoundsUpdater;
         public static readonly FieldInfo Bones;
@@ -68,7 +80,6 @@ namespace Thundaga
 
         static SkinnedMeshRendererConnectorInfo()
         {
-            MeshFilter = typeof(SkinnedMeshRendererConnector).GetField("meshFilter", AccessTools.all);
             UnityMaterials = typeof(SkinnedMeshRendererConnector).GetField("unityMaterials", AccessTools.all);
             BoundsUpdater = typeof(SkinnedMeshRendererConnector).GetField("_boundsUpdater", AccessTools.all);
             Bones = typeof(SkinnedMeshRendererConnector).GetField("bones", AccessTools.all);
@@ -105,10 +116,15 @@ namespace Thundaga
                 Object.Destroy(__instance.MeshRenderer);
             
             SkinnedMeshRendererConnectorInfo.UnityMaterials.SetValue(__instance, null);
-            SkinnedMeshRendererConnectorInfo.MeshFilter.SetValue(__instance, null);
             set_MeshRenderer(__instance, null);
             
             return false;
+        }
+        [HarmonyPatch("get_attachedGameObject")]
+        [HarmonyReversePatch]
+        public static GameObject get_attachedGameObject(SkinnedMeshRendererConnector instance)
+        {
+            throw new NotImplementedException();
         }
         //this executes the original version of ApplyChanges, not the patched version that only enqueues the packet
         [HarmonyPatch("ApplyChanges")]
@@ -419,5 +435,5 @@ namespace Thundaga
             throw new NotImplementedException();
         }
     }
-    Z*/
+    */
 }
