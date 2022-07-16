@@ -9,12 +9,12 @@ using UnityEngine.Rendering;
 using UnityNeos;
 using Material = UnityEngine.Material;
 using Mesh = UnityEngine.Mesh;
-using MeshRenderer = UnityEngine.MeshRenderer;
 using Object = UnityEngine.Object;
+using SkinnedMeshRenderer = UnityEngine.SkinnedMeshRenderer;
 
 namespace Thundaga
 {
-    public class MeshRendererConnectorPacket : ConnectorPacket<MeshRendererConnector>
+    public class SkinnedMeshRendererConnectorPacket : ConnectorPacket<SkinnedMeshRendererConnector>
     {
         private bool _isAssetAvailable;
         private bool _meshWasChanged;
@@ -30,7 +30,7 @@ namespace Thundaga
         private int? _sortingOrder;
         private ShadowCastingMode? _shadowCastingMode;
         private MotionVectorGenerationMode? _motionVectorGenerationMode;
-        public MeshRendererConnectorPacket(MeshRendererConnector connector)
+        public SkinnedMeshRendererConnectorPacket(SkinnedMeshRendererConnector connector)
         {
             _connector = connector;
             var owner = connector.Owner;
@@ -74,26 +74,24 @@ namespace Thundaga
                 var renderer = _connector.MeshRenderer;
                 if (renderer == null)
                 {
-                    var gameObject = MeshRendererConnectorPatches.get_attachedGameObject(_connector);
-                    MeshRendererConnectorInfo.MeshFilter.SetValue(_connector,
-                        gameObject.AddComponent<MeshFilter>());
-                    MeshRendererConnectorPatches.set_MeshRenderer(_connector, gameObject.AddComponent<MeshRenderer>());
+                    var gameObject = SkinnedMeshRendererConnectorPatches.get_attachedGameObject(_connector);
+                    SkinnedMeshRendererConnectorPatches.set_MeshRenderer(_connector, gameObject.AddComponent<SkinnedMeshRenderer>());
                     OnAttachRenderer();
                 }
                 if (_meshWasChanged)
                 {
                     var unity = _mesh.GetUnity();
-                    ((MeshFilter)MeshRendererConnectorInfo.MeshFilter.GetValue(_connector)).sharedMesh = unity;
+                    AssignMesh(renderer, unity);
                 }
                 var updatePropertyBlocksAnyway = false;
                 if (_materialsChanged || _meshWasChanged)
                 {
                     updatePropertyBlocksAnyway = true;
-                    MeshRendererConnectorInfo.MaterialCount.SetValue(_connector, 1);
+                    SkinnedMeshRendererConnectorInfo.MaterialCount.SetValue(_connector, 1);
                     var nullMaterial = _isLocalElement
                         ? MaterialConnector.InvisibleMaterial
                         : MaterialConnector.NullMaterial;
-                    var unityMaterials = (Material[])MeshRendererConnectorInfo.UnityMaterials.GetValue(_connector);
+                    var unityMaterials = (Material[])SkinnedMeshRendererConnectorInfo.UnityMaterials.GetValue(_connector);
                     if (_materialCount > 1 || unityMaterials != null)
                     {
                         unityMaterials = unityMaterials.EnsureExactSize(_materialCount, allowZeroSize: true);
@@ -102,8 +100,8 @@ namespace Thundaga
                             unityMaterials[i] = _materials[i]?.Asset.GetUnity(nullMaterial);
                         }
                         renderer.sharedMaterials = unityMaterials;
-                        MeshRendererConnectorInfo.UnityMaterials.SetValue(_connector, unityMaterials);
-                        MeshRendererConnectorInfo.MaterialCount.SetValue(_connector, _materialCount);
+                        SkinnedMeshRendererConnectorInfo.UnityMaterials.SetValue(_connector, unityMaterials);
+                        SkinnedMeshRendererConnectorInfo.MaterialCount.SetValue(_connector, _materialCount);
                     }
                     else
                     {
@@ -137,10 +135,10 @@ namespace Thundaga
             }
         }
     }
-    public class MeshRendererConnectorDestroyPacket : ConnectorPacket<MeshRendererConnector>
+    public class SkinnedMeshRendererConnectorDestroyPacket : ConnectorPacket<SkinnedMeshRendererConnector>
     {
         private bool _destroyingWorld;
-        public MeshRendererConnectorDestroyPacket(MeshRendererConnector connector, bool destroyingWorld)
+        public SkinnedMeshRendererConnectorDestroyPacket(SkinnedMeshRendererConnector connector, bool destroyingWorld)
         {
             _connector = connector;
             _destroyingWorld = destroyingWorld;
@@ -148,9 +146,9 @@ namespace Thundaga
         public override void ApplyChange()
         {
             CleanupRenderer(_destroyingWorld);
-            MeshRendererConnectorInfo.UnityMaterials.SetValue(_connector, null);
-            MeshRendererConnectorInfo.MeshFilter.SetValue(_connector, null);
-            MeshRendererConnectorPatches.set_MeshRenderer(_connector, null);
+            SkinnedMeshRendererConnectorInfo.UnityMaterials.SetValue(_connector, null);
+            SkinnedMeshRendererConnectorInfo.MeshFilter.SetValue(_connector, null);
+            SkinnedMeshRendererConnectorPatches.set_MeshRenderer(_connector, null);
         }
         public void CleanupRenderer(bool destroyingWorld)
         {
@@ -160,13 +158,13 @@ namespace Thundaga
             if (filter != null) Object.Destroy(filter);
         }
     }
-    public static class MeshRendererConnectorInfo
+    public static class SkinnedMeshRendererConnectorInfo
     {
         public static readonly FieldInfo MeshFilter;
         public static readonly FieldInfo MaterialCount;
         public static readonly FieldInfo UnityMaterials;
 
-        static MeshRendererConnectorInfo()
+        static SkinnedMeshRendererConnectorInfo()
         {
             MeshFilter = typeof(MeshRendererConnector).GetField("meshFilter", AccessTools.all);
             MaterialCount = typeof(MeshRendererConnector).GetField("materialCount", AccessTools.all);
@@ -174,18 +172,18 @@ namespace Thundaga
         }
     }
 
-    [HarmonyPatch(typeof(MeshRendererConnector))]
-    public class MeshRendererConnectorPatches
+    [HarmonyPatch(typeof(SkinnedMeshRendererConnector))]
+    public class SkinnedMeshRendererConnectorPatches
     {
         [HarmonyPatch("get_attachedGameObject")]
         [HarmonyReversePatch]
-        public static GameObject get_attachedGameObject(MeshRendererConnector instance)
+        public static GameObject get_attachedGameObject(SkinnedMeshRendererConnector instance)
         {
             throw new NotImplementedException();
         }
         [HarmonyPatch("set_MeshRenderer")]
         [HarmonyReversePatch]
-        public static void set_MeshRenderer(MeshRendererConnector instance, MeshRenderer value)
+        public static void set_MeshRenderer(SkinnedMeshRendererConnector instance, SkinnedMeshRenderer value)
         {
             throw new NotImplementedException();
         }
