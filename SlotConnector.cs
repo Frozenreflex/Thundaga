@@ -89,6 +89,8 @@ namespace Thundaga
         //todo: either convert these to something else like delegates or something harmony can do, or make sure they
         //run on specific threads to balance the load between them
         //fieldinfo is not optimal at all
+        
+        //could potentially use harmony's field ref injection and store the ref within the packet?
         public static readonly FieldInfo ParentConnector;
         public static readonly FieldInfo Transform;
         public static readonly FieldInfo LastParent;
@@ -108,7 +110,7 @@ namespace Thundaga
     {
         [HarmonyPatch("GenerateGameObject")]
         [HarmonyPrefix]
-        private bool GenerateGameObject(SlotConnector __instance)
+        private static bool GenerateGameObject(SlotConnector __instance)
         {
             var go = new GameObject("");
             set_GeneratedGameObject(__instance, go);
@@ -134,7 +136,7 @@ namespace Thundaga
         
         [HarmonyPatch("ApplyChanges")]
         [HarmonyPrefix]
-        private bool ApplyChanges(SlotConnector __instance)
+        private static bool ApplyChanges(SlotConnector __instance)
         {
             PacketManager.Enqueue(__instance.GetPacket());
             return false;
@@ -142,7 +144,7 @@ namespace Thundaga
         
         [HarmonyPatch("Destroy")]
         [HarmonyPrefix]
-        private bool Destroy(SlotConnector __instance, bool destroyingWorld)
+        private static bool Destroy(SlotConnector __instance, bool destroyingWorld)
         {
             PacketManager.Enqueue(__instance.GetDestroyPacket(destroyingWorld));
             return false;
