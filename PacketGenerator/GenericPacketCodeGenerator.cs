@@ -5,20 +5,31 @@ namespace PacketGenerator
     [Generator]
     public class GenericPacketCodeGenerator : ISourceGenerator
     {
-        private static string[] GenericConnectors =
-        {
-            "SkinnedMeshRendererConnector",
-            "MeshRendererConnector",
-            "AudioOutputConnector",
-        };
-
         public void Initialize(GeneratorInitializationContext context)
         {
             
         }
-
         public void Execute(GeneratorExecutionContext context)
         {
+            var GenericConnectors = new[] {
+                "SkinnedMeshRendererConnector",
+                "MeshRendererConnector",
+                "AudioOutputConnector",
+                "AudioReverbZoneConnector",
+                "CameraPortalConnector",
+            };
+            
+            var extensions = $@"//auto generated packet code
+using System;
+using System.Reflection;
+using HarmonyLib;
+using UnityNeos;
+
+namespace Thundaga.Packets
+{{
+    public static class GeneratedPacketExtensions
+    {{
+";
             foreach (var connector in GenericConnectors)
             {
                 var source = $@"//auto generated packet code
@@ -84,18 +95,19 @@ namespace Thundaga.Packets
         [HarmonyReversePatch]
         public static void InitializeOriginal({connector} instance) => throw new NotImplementedException();
     }}
-    public static class {connector}PacketExtensions
-    {{
-        public static {connector}Packet GetPacket(this {connector} connector) => new {connector}Packet(connector);
-        public static {connector}DestroyPacket GetDestroyPacket(this {connector} connector, bool destroyingWorld) => new {connector}DestroyPacket(connector, destroyingWorld);
-        public static {connector}InitializePacket GetInitializePacket(this {connector} connector) => new {connector}InitializePacket(connector);
-    }}
 }}
-
-
 ";
                 context.AddSource($"{connector}.g.cs", source);
+                extensions += $@"//{connector}
+        public static {connector}Packet GetPacket(this {connector} connector) => new {connector}Packet(connector);
+        public static {connector}DestroyPacket GetDestroyPacket(this {connector} connector, bool destroyingWorld) => new {connector}DestroyPacket(connector, destroyingWorld);
+        public static {connector}InitializePacket GetInitializePacket(this {connector} connector) => new {connector}InitializePacket(connector);";
             }
+
+            extensions += $@"//end
+    }}
+}}";
+            context.AddSource("Extensions.g.cs", extensions);
         }
     }
 }
