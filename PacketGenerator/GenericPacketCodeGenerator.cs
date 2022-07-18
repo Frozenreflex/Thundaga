@@ -17,6 +17,11 @@ namespace PacketGenerator
                 "AudioOutputConnector",
                 "AudioReverbZoneConnector",
                 "CameraPortalConnector",
+                "HiddenLayerConnector",
+                "LightConnector",
+                "LODGroupConnector",
+                "ParticleSystemConnector",
+                "SkyboxConnector",
             };
             
             var extensions = $@"//auto generated packet code
