@@ -53,8 +53,5 @@
     <ItemGroup>
         <ProjectReference Include="..\PacketGenerator\PacketGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
-    <ItemGroup>
-      <Compile Remove="SlotConnector.cs" />
-    </ItemGroup>
 
 </Project>
