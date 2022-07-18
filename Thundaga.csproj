@@ -36,6 +36,9 @@
     <Reference Include="UnityEngine.AudioModule">
       <HintPath>$(NeosPath)Neos_Data/Managed/UnityEngine.AudioModule.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.ParticleSystemModule">
+      <HintPath>$(NeosPath)Neos_Data/Managed/UnityEngine.ParticleSystemModule.dll</HintPath>
+    </Reference>
     <Reference Include="NeosModLoader">
       <HintPath>$(NeosPath)NeosModLoader.dll</HintPath>
       <HintPath>$(NeosPath)Libraries/NeosModLoader.dll</HintPath>
@@ -47,5 +50,8 @@
       <HintPath>$(NeosPath)0Harmony.dll</HintPath>
     </Reference>
   </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\PacketGenerator\PacketGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    </ItemGroup>
 
 </Project>

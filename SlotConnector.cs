@@ -8,7 +8,7 @@ using HarmonyLib;
 using UnityEngine;
 using UnityNeos;
 
-namespace Thundaga
+namespace Thundaga.Packets
 {
     public class SlotConnectorPacket : ConnectorPacket<SlotConnector>
     {

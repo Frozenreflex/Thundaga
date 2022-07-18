@@ -1,9 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using HarmonyLib;
 using NeosModLoader;
 using System.Linq;
 using System.Reflection;
 using FrooxEngine;
+using Thundaga.Packets;
 using UnityNeos;
 
 namespace Thundaga
@@ -73,24 +75,6 @@ namespace Thundaga
         public static SlotConnectorPacket GetPacket(this SlotConnector connector) => new SlotConnectorPacket(connector);
         public static SlotConnectorDestroyPacket GetDestroyPacket(this SlotConnector connector, bool destroyingWorld) =>
             new SlotConnectorDestroyPacket(connector, destroyingWorld);
-        public static MeshRendererConnectorPacket GetPacket(this MeshRendererConnector connector) =>
-            new MeshRendererConnectorPacket(connector);
-        public static MeshRendererConnectorDestroyPacket GetDestroyPacket(this MeshRendererConnector connector, bool destroyingWorld) =>
-            new MeshRendererConnectorDestroyPacket(connector, destroyingWorld);
-        public static MeshRendererConnectorInitializePacket GetInitializePacket(this MeshRendererConnector connector) =>
-            new MeshRendererConnectorInitializePacket(connector);
-        public static SkinnedMeshRendererConnectorPacket GetPacket(this SkinnedMeshRendererConnector connector) =>
-            new SkinnedMeshRendererConnectorPacket(connector);
-        public static SkinnedMeshRendererConnectorDestroyPacket GetDestroyPacket(this SkinnedMeshRendererConnector connector, bool destroyingWorld) =>
-            new SkinnedMeshRendererConnectorDestroyPacket(connector, destroyingWorld);
-        public static SkinnedMeshRendererConnectorInitializePacket GetInitializePacket(this SkinnedMeshRendererConnector connector) =>
-            new SkinnedMeshRendererConnectorInitializePacket(connector);
-        public static AudioOutputConnectorPacket GetPacket(this AudioOutputConnector connector) =>
-            new AudioOutputConnectorPacket(connector);
-        public static AudioOutputConnectorDestroyPacket GetDestroyPacket(this AudioOutputConnector connector, bool destroyingWorld) =>
-            new AudioOutputConnectorDestroyPacket(connector, destroyingWorld);
-        public static AudioOutputConnectorInitializePacket GetInitializePacket(this AudioOutputConnector connector) =>
-            new AudioOutputConnectorInitializePacket(connector);
     }
 
     public static class PacketManager
