@@ -48,7 +48,10 @@ namespace Thundaga.Packets
     public class {connector}Packet : ConnectorPacket<{connector}>
     {{
         public {connector}Packet({connector} connector) => _connector = connector;
-        public override void ApplyChange() => {connector}Patches.ApplyChangesOriginal(_connector);
+        public override void ApplyChange()
+        {{
+            if (!_connector.Owner.IsDestroyed) {connector}Patches.ApplyChangesOriginal(_connector);
+        }}
     }}
     public class {connector}DestroyPacket : ConnectorPacket<{connector}>
     {{
