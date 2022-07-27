@@ -1,6 +1,7 @@
 using System;
 using FrooxEngine;
 using UnityNeos;
+using SkinnedMeshRenderer = UnityEngine.SkinnedMeshRenderer;
 
 namespace Thundaga
 {
@@ -13,14 +14,30 @@ namespace Thundaga
         public GenericComponentPacket(IConnector connector)
         {
             _connector = connector;
-            //TODO: is this heavy on performance?
-            if (!(connector is MeshRendererConnectorBase<MeshRenderer, UnityEngine.MeshRenderer> meshConnector)) return;
-            var owner = meshConnector.Owner;
-            MeshRendererConnectorPatch.set_meshWasChanged(meshConnector,
-                owner.Mesh.GetWasChangedAndClear());
-            owner.SortingOrder.GetWasChangedAndClear();
-            owner.ShadowCastMode.GetWasChangedAndClear();
-            owner.MotionVectorMode.GetWasChangedAndClear();
+            switch (connector)
+            {
+                //TODO: is this heavy on performance?
+                case MeshRendererConnectorBase<MeshRenderer, UnityEngine.MeshRenderer> meshConnector:
+                {
+                    var owner = meshConnector.Owner;
+                    MeshRendererConnectorPatch.set_meshWasChanged(meshConnector,
+                        owner.Mesh.GetWasChangedAndClear());
+                    owner.SortingOrder.GetWasChangedAndClear();
+                    owner.ShadowCastMode.GetWasChangedAndClear();
+                    owner.MotionVectorMode.GetWasChangedAndClear();
+                    break;
+                }
+                case SkinnedMeshRendererConnector skinnedMeshRendererConnector:
+                    var owner2 = skinnedMeshRendererConnector.Owner;
+                    SkinnedMeshRendererConnectorPatchB.set_meshWasChanged(skinnedMeshRendererConnector,
+                        owner2.Mesh.GetWasChangedAndClear());
+                    owner2.SortingOrder.GetWasChangedAndClear();
+                    owner2.ShadowCastMode.GetWasChangedAndClear();
+                    owner2.MotionVectorMode.GetWasChangedAndClear();
+                    owner2.ProxyBoundsSource.GetWasChangedAndClear();
+                    owner2.ExplicitLocalBounds.GetWasChangedAndClear();
+                    break;
+            }
         }
     }
     public class GenericComponentDestroyPacket : ConnectorPacket<IConnector>

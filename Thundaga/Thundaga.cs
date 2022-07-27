@@ -158,8 +158,6 @@ namespace Thundaga
         public static void InternalRunDestruction(ComponentBase<Component> instance) =>
             throw new NotImplementedException();
     }
-
-    [HarmonyPatch(typeof(SkinnedMeshRendererConnector))]
     [HarmonyPatch(typeof(MeshRendererConnectorBase<MeshRenderer, UnityEngine.MeshRenderer>))]
     public class MeshRendererConnectorPatch
     {
@@ -206,6 +204,44 @@ namespace Thundaga
             codes.Reverse();
             return codes;
         }
+    }
+    
+    [HarmonyPatch(typeof(SkinnedMeshRendererConnector))]
+    public static class SkinnedMeshRendererConnectorPatchA
+    {
+        [HarmonyPatch("ApplyChanges")]
+        [HarmonyTranspiler]
+        public static IEnumerable<CodeInstruction> ApplyChangesTranspiler(
+            IEnumerable<CodeInstruction> instructions, ILGenerator generator)
+        {
+            //remove WasChanged set to prevent thread errors
+            var codes = new List<CodeInstruction>(instructions);
+            codes.Reverse();
+            for (var a = 0; a < 3; a++)
+            {
+                for (var i = 0; i < codes.Count; i++)
+                    if (codes[i].opcode == OpCodes.Callvirt && codes[i].operand.ToString().Contains("set_WasChanged"))
+                    {
+                        for (var h = 0; h < 5; h++)
+                        {
+                            codes[i+h].opcode = OpCodes.Nop;
+                            codes[i+h].operand = null;
+                        }
+                        break;
+                    }
+            }
+            codes.Reverse();
+            return codes;
+        }
+    }
+    [HarmonyPatch(typeof(MeshRendererConnectorBase<SkinnedMeshRenderer, UnityEngine.SkinnedMeshRenderer>))]
+    public static class SkinnedMeshRendererConnectorPatchB
+    {
+        [HarmonyPatch("set_meshWasChanged")]
+        [HarmonyReversePatch]
+        public static void set_meshWasChanged(
+            MeshRendererConnectorBase<SkinnedMeshRenderer, UnityEngine.SkinnedMeshRenderer> instance, bool value) =>
+            throw new NotImplementedException();
     }
     public static class ExtraPatches
     {
