@@ -1,3 +1,4 @@
+/*
 using Microsoft.CodeAnalysis;
 
 namespace PacketGenerator
@@ -119,3 +120,4 @@ namespace Thundaga.Packets
         }
     }
 }
+*/

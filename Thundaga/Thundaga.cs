@@ -4,7 +4,10 @@ using HarmonyLib;
 using NeosModLoader;
 using System.Linq;
 using System.Reflection;
+using B83.Win32;
+using BaseX;
 using FrooxEngine;
+using Leap;
 using Thundaga.Packets;
 using UnityNeos;
 
@@ -25,30 +28,30 @@ namespace Thundaga
         {
             var harmony = new Harmony("Thundaga");
             /*
-            _unityNeos = Assembly.GetAssembly(typeof(SkinnedMeshRendererConnector));
-            Msg(_unityNeos.FullName);
-            var needsChecked = _unityNeos.GetTypes().ToList();
-            var methodNames = new[]
-            {
-                "Update", "OnPreCull", "OnWillRenderObject", "OnBecameVisible", "OnBecameInvisible", "OnPreRender",
-                "OnRenderObject", "OnPostRender", "OnRenderImage", "ApplyChanges", "Destroy", "Initialize"
-            };
-            foreach (var n in methodNames)
-            {
-                Msg($"{n}:");
-                var valid = needsChecked.Where(i => i.GetMethod(n) != null);
-                foreach (var v in valid)
-                {
-                    Msg(v.FullName);
-                }
-            }
+            var original = typeof(ReversePatcher).GetMethod("Patch", AccessTools.all);
+            harmony.Patch(original, new HarmonyMethod(typeof(HarmonyPatcherPatcher).GetMethod("Patch", AccessTools.all)));
+            Msg("patched harmony lmao");
+            Msg(AccessTools.DeclaredMethod(typeof(SkinnedMeshRendererConnector), "Initialize") != null);
             */
+            var patches = typeof(ImplementableComponentPatches<>);
+            var a = typeof(ImplementableComponent<>);
+            var update = a.GetMethod("InternalUpdateConnector", AccessTools.all);
+            var destroy = a.GetMethod("InternalRunDestruction", AccessTools.all);
+            var initialize = a.GetMethod("InternalRunStartup", AccessTools.all);
+
+            harmony.Patch(update, new HarmonyMethod(patches.GetMethod("InternalUpdateConnector")));
+            harmony.Patch(destroy, new HarmonyMethod(patches.GetMethod("InternalRunDestruction")));
+            harmony.Patch(initialize, new HarmonyMethod(patches.GetMethod("InternalRunStartup")));
+            
             harmony.PatchAll();
+            //do this if we need patches for platform specific connectors
+            /*
             switch (Engine.Current.Platform)
             {
                 case Platform.Windows:
                     //run windows specific patches
                     //viseme analyzer
+                    //not sure if viseme analyzer works with the default generic packet
                     break;
                 case Platform.Linux:
                     //run linux specific patches
@@ -57,6 +60,7 @@ namespace Thundaga
                     //run android specific patches
                     break;
             }
+            */
         }
     }
     public interface IConnectorPacket
@@ -84,8 +88,6 @@ namespace Thundaga
         public static List<IConnectorPacket> NeosPacketQueue = new List<IConnectorPacket>();
         public static List<IConnectorPacket> IntermittentPacketQueue = new List<IConnectorPacket>();
         public static void Enqueue(IConnectorPacket packet) => NeosPacketQueue.Add(packet);
-
-        //call this at the end of the neos update loop
         public static void FinishNeosQueue()
         {
             lock (IntermittentPacketQueue)
@@ -94,8 +96,6 @@ namespace Thundaga
                 NeosPacketQueue.Clear();
             }
         }
-
-        //call this in place of frooxengine's update method within the unity update loop
         public static List<IConnectorPacket> GetQueuedPackets()
         {
             lock (IntermittentPacketQueue)
@@ -106,4 +106,55 @@ namespace Thundaga
             }
         }
     }
+    
+    public static class ImplementableComponentPatches<T> where T : class, IConnector
+    {
+        public static bool InternalUpdateConnector(ImplementableComponent<T> __instance)
+        {
+            PacketManager.Enqueue(new GenericComponentPacket(__instance.Connector));
+            return false;
+        }
+        public static bool InternalRunStartup(ImplementableComponent<T> __instance)
+        {
+            ComponentBasePatch.InternalRunStartup(__instance);
+            PacketManager.Enqueue(new GenericComponentInitializePacket(__instance.Connector));
+            return false;
+        }
+        public static bool InternalRunDestruction(ImplementableComponent<T> __instance)
+        {
+            ComponentBasePatch.InternalRunDestruction(__instance);
+            PacketManager.Enqueue(new GenericComponentDestroyPacket(__instance.Connector, __instance.World.IsDestroyed));
+            return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(ComponentBase<>))]
+    public static class ComponentBasePatch
+    {
+        [HarmonyPatch("InternalRunStartup")]
+        [HarmonyReversePatch]
+        public static void InternalRunStartup(object instance)
+        {
+            throw new NotImplementedException();
+        }
+        [HarmonyPatch("InternalRunDestruction")]
+        [HarmonyReversePatch]
+        public static void InternalRunDestruction(object instance)
+        {
+            throw new NotImplementedException();
+        }
+    }
+    /*
+    public static class HarmonyPatcherPatcher
+    {
+        private static FieldInfo standin = typeof(ReversePatcher).GetField("standin", AccessTools.all);
+        public static bool Patch(ReversePatcher __instance)
+        {
+            UniLog.Log("-----");
+            UniLog.Log(((HarmonyMethod)standin.GetValue(__instance)).methodName);
+            UniLog.Log(((HarmonyMethod)standin.GetValue(__instance)).method.DeclaringType.FullName);
+            return true;
+        }
+    }
+    */
 }

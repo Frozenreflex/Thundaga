@@ -257,22 +257,22 @@ namespace Thundaga
     [HarmonyPatch(typeof(SystemInfoConnector))]
     public static class SystemInfoConnectorPatch
     {
-        [HarmonyPatch("set_ExternalUpdateTime")]
+        [HarmonyPatch("ExternalUpdateTime", MethodType.Setter)]
         [HarmonyReversePatch]
         public static void set_ExternalUpdateTime(SystemInfoConnector instance, float value) => 
             throw new NotImplementedException();
 
-        [HarmonyPatch("set_RenderTime")]
+        [HarmonyPatch("RenderTime", MethodType.Setter)]
         [HarmonyReversePatch]
         public static void set_RenderTime(SystemInfoConnector instance, float value) => 
             throw new NotImplementedException();
 
-        [HarmonyPatch("set_FPS")]
+        [HarmonyPatch("FPS", MethodType.Setter)]
         [HarmonyReversePatch]
         public static void set_FPS(SystemInfoConnector instance, float value) => 
             throw new NotImplementedException();
 
-        [HarmonyPatch("set_ImmediateFPS")]
+        [HarmonyPatch("ImmediateFPS", MethodType.Setter)]
         [HarmonyReversePatch]
         public static void set_ImmediateFPS(SystemInfoConnector instance, float value) =>
             throw new NotImplementedException();
