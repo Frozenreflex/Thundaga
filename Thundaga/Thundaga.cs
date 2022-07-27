@@ -34,7 +34,26 @@ namespace Thundaga
             Msg(AccessTools.DeclaredMethod(typeof(SkinnedMeshRendererConnector), "Initialize") != null);
             */
             var patches = typeof(ImplementableComponentPatches);
-            var a = typeof(ImplementableComponent<>);
+            /*
+            var allClasses = typeof(StandaloneFrooxEngineRunner).Assembly.GetTypes();
+            foreach (var c in allClasses)
+            {
+                var interfaces = c.GetInterfaces();
+                var names = interfaces.Select(i => i.Name).ToList();
+                if (!names.Any(i => i.Contains("Component")) || !names.Any(i => i.Contains("Implementable")) ||
+                    c.Name.Contains("Implementable")) continue;
+                var update = c.GetMethod("InternalUpdateConnector", AccessTools.all);
+                var destroy = c.GetMethod("InternalRunDestruction", AccessTools.all);
+                var initialize = c.GetMethod("InternalRunStartup", AccessTools.all);
+                harmony.Patch(update, new HarmonyMethod(patches.GetMethod("InternalUpdateConnector")));
+                harmony.Patch(destroy, new HarmonyMethod(patches.GetMethod("InternalRunDestruction")));
+                harmony.Patch(initialize, new HarmonyMethod(patches.GetMethod("InternalRunStartup")));
+            }
+            harmony.PatchAll();
+            */
+            
+            
+            var a = typeof(ImplementableComponent<>).MakeGenericType(typeof(IConnector));
             var update = a.GetMethod("InternalUpdateConnector", AccessTools.all);
             var destroy = a.GetMethod("InternalRunDestruction", AccessTools.all);
             var initialize = a.GetMethod("InternalRunStartup", AccessTools.all);
@@ -123,23 +142,25 @@ namespace Thundaga
         public static bool InternalRunDestruction(ImplementableComponent<IConnector> __instance)
         {
             ComponentBasePatch.InternalRunDestruction(__instance);
-            PacketManager.Enqueue(new GenericComponentDestroyPacket(__instance.Connector, __instance.World.IsDestroyed));
+            var destroyed = false;
+            if (__instance.World != null) destroyed = __instance.World.IsDestroyed;
+            PacketManager.Enqueue(new GenericComponentDestroyPacket(__instance.Connector, destroyed));
             return false;
         }
     }
 
-    [HarmonyPatch(typeof(ComponentBase<>))]
+    [HarmonyPatch(typeof(ComponentBase<Component>))]
     public static class ComponentBasePatch
     {
-        [HarmonyPatch("InternalRunStartup")]
+        [HarmonyPatch("InternalRunStartup", MethodType.Normal)]
         [HarmonyReversePatch]
-        public static void InternalRunStartup(object instance)
+        public static void InternalRunStartup(ComponentBase<Component> instance)
         {
             throw new NotImplementedException();
         }
-        [HarmonyPatch("InternalRunDestruction")]
+        [HarmonyPatch("InternalRunDestruction", MethodType.Normal)]
         [HarmonyReversePatch]
-        public static void InternalRunDestruction(object instance)
+        public static void InternalRunDestruction(ComponentBase<Component> instance)
         {
             throw new NotImplementedException();
         }

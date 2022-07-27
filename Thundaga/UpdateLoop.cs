@@ -92,8 +92,10 @@ namespace Thundaga
                 {
                     if (___engine != null)
                     {
+                        /*
                         SystemInfoConnectorPatch.set_ExternalUpdateTime(___systemInfoConnector,
                             ____externalStopwatch.ElapsedMilliseconds * (1f / 1000f));
+                            */
                         if (!____framerateStopwatch.IsRunning)
                         {
                             ____framerateStopwatch.Restart();
@@ -104,20 +106,24 @@ namespace Thundaga
                             var elapsedMilliseconds = ____framerateStopwatch.ElapsedMilliseconds;
                             if (elapsedMilliseconds >= 500L)
                             {
+                                /*
                                 if (___systemInfoConnector != null)
                                     SystemInfoConnectorPatch.set_FPS(___systemInfoConnector, ____framerateCounter /
                                         (elapsedMilliseconds * (1f / 1000f)));
+                                        */
                                 ____framerateCounter = 0;
                                 ____framerateStopwatch.Restart();
                             }
                         }
 
+                        /*
                         SystemInfoConnectorPatch.set_RenderTime(___systemInfoConnector,
                             !XRStats.TryGetGPUTimeLastFrame(out var gpuTimeLastFrame) ? -1f
                             : gpuTimeLastFrame * (1f / 1000f));
                         if (___systemInfoConnector != null)
                             SystemInfoConnectorPatch.set_ImmediateFPS(___systemInfoConnector,
                                 1f / Time.unscaledDeltaTime);
+                                */
                         ___engine.InputInterface.UpdateWindowResolution(new int2(Screen.width,
                             Screen.height));
                         //___engine.RunUpdateLoop(6.0);
