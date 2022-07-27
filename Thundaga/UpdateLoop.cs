@@ -20,7 +20,6 @@ namespace Thundaga
         public static bool shutdown;
         public static void Update()
         {
-            //var num1 = 0f;
             var dateTime = DateTime.UtcNow;
             const float tickRate = 1f/60f;
             while (!shutdown)
@@ -42,9 +41,9 @@ namespace Thundaga
     }
 
     [HarmonyPatch(typeof(FrooxEngineRunner))]
-    public class FrooxEngineRunnerPatch
+    public static class FrooxEngineRunnerPatch
     {
-        private static bool _startedUpdating = false;
+        private static bool _startedUpdating;
 
         [HarmonyPatch("Update")]
         [HarmonyPrefix]
@@ -246,44 +245,36 @@ namespace Thundaga
 
         [HarmonyPatch("UpdateDynamicGIDelayed")]
         [HarmonyReversePatch]
-        private static IEnumerator UpdateDynamicGIDelayed(FrooxEngineRunner instance)
-        {
+        private static IEnumerator UpdateDynamicGIDelayed(FrooxEngineRunner instance) =>
             throw new NotImplementedException();
-        }
+
         [HarmonyPatch("QuitApplication")]
         [HarmonyReversePatch]
-        private static void QuitApplication(FrooxEngineRunner instance)
-        {
+        private static void QuitApplication(FrooxEngineRunner instance) => 
             throw new NotImplementedException();
-        }
     }
 
     [HarmonyPatch(typeof(SystemInfoConnector))]
-    public class SystemInfoConnectorPatch
+    public static class SystemInfoConnectorPatch
     {
         [HarmonyPatch("set_ExternalUpdateTime")]
         [HarmonyReversePatch]
-        public static void set_ExternalUpdateTime(SystemInfoConnector instance, float value)
-        {
+        public static void set_ExternalUpdateTime(SystemInfoConnector instance, float value) => 
             throw new NotImplementedException();
-        }
+
         [HarmonyPatch("set_RenderTime")]
         [HarmonyReversePatch]
-        public static void set_RenderTime(SystemInfoConnector instance, float value)
-        {
+        public static void set_RenderTime(SystemInfoConnector instance, float value) => 
             throw new NotImplementedException();
-        }
+
         [HarmonyPatch("set_FPS")]
         [HarmonyReversePatch]
-        public static void set_FPS(SystemInfoConnector instance, float value)
-        {
+        public static void set_FPS(SystemInfoConnector instance, float value) => 
             throw new NotImplementedException();
-        }
+
         [HarmonyPatch("set_ImmediateFPS")]
         [HarmonyReversePatch]
-        public static void set_ImmediateFPS(SystemInfoConnector instance, float value)
-        {
+        public static void set_ImmediateFPS(SystemInfoConnector instance, float value) =>
             throw new NotImplementedException();
-        }
     }
 }

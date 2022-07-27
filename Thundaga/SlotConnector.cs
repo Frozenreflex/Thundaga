@@ -12,7 +12,7 @@ namespace Thundaga.Packets
 {
     public class SlotConnectorPacket : ConnectorPacket<SlotConnector>
     {
-        private ISlotConnector _parentConnector;
+        //private ISlotConnector _parentConnector;
         private bool _shouldUpdateParent;
         private bool? _active;
         private Vector3? _position;
@@ -24,7 +24,7 @@ namespace Thundaga.Packets
             _connector = connector;
             var owner = connector.Owner;
             var parent = owner.Parent;
-            _parentConnector = parent?.Connector;
+            //_parentConnector = parent?.Connector;
             _shouldUpdateParent = parent?.Connector != SlotConnectorInfo.ParentConnector.GetValue(connector) && parent != null;
             if (owner.ActiveSelf_Field.GetWasChangedAndClear()) _active = owner.ActiveSelf_Field.Value;
             if (owner.Position_Field.GetWasChangedAndClear()) _position = owner.Position_Field.Value.ToUnity();
