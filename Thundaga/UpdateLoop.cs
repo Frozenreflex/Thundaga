@@ -18,10 +18,11 @@ namespace Thundaga
     public class UpdateLoop
     {
         public static bool shutdown;
+
         public static void Update()
         {
             var dateTime = DateTime.UtcNow;
-            const float tickRate = 1f/60f;
+            const float tickRate = 1f / 60f;
             while (!shutdown)
             {
                 Engine.Current.RunUpdateLoop();
@@ -68,10 +69,12 @@ namespace Thundaga
                 {
                     UniLog.Error("Exception disposing the engine:\n" + ___engine);
                 }
+
                 ___engine = null;
                 QuitApplication(__instance);
                 return false;
             }
+
             UpdateLoop.shutdown = ___shutdownEnvironment;
             if (!_startedUpdating)
             {
@@ -139,6 +142,21 @@ namespace Thundaga
                                 UniLog.Error(e.ToString());
                             }
                         }
+
+                        var assetTaskQueue = PacketManager.GetQueuedAssetTasks();
+                        foreach (var task in assetTaskQueue)
+                        {
+                            try
+                            {
+                                task();
+                            }
+                            catch (Exception e)
+                            {
+                                UniLog.Error(e.ToString());
+                            }
+                        }
+                        AssetIntegratorPatch.ProcessQueue((UnityAssetIntegrator) Engine.Current.AssetManager.Connector,
+                            2, false);
 
                         var focusedWorld = ___engine.WorldManager.FocusedWorld;
                         if (focusedWorld != null)
@@ -256,7 +274,7 @@ namespace Thundaga
 
         [HarmonyPatch("QuitApplication")]
         [HarmonyReversePatch]
-        private static void QuitApplication(FrooxEngineRunner instance) => 
+        private static void QuitApplication(FrooxEngineRunner instance) =>
             throw new NotImplementedException();
     }
 
@@ -265,22 +283,42 @@ namespace Thundaga
     {
         [HarmonyPatch("ExternalUpdateTime", MethodType.Setter)]
         [HarmonyReversePatch]
-        public static void set_ExternalUpdateTime(SystemInfoConnector instance, float value) => 
+        public static void set_ExternalUpdateTime(SystemInfoConnector instance, float value) =>
             throw new NotImplementedException();
 
         [HarmonyPatch("RenderTime", MethodType.Setter)]
         [HarmonyReversePatch]
-        public static void set_RenderTime(SystemInfoConnector instance, float value) => 
+        public static void set_RenderTime(SystemInfoConnector instance, float value) =>
             throw new NotImplementedException();
 
         [HarmonyPatch("FPS", MethodType.Setter)]
         [HarmonyReversePatch]
-        public static void set_FPS(SystemInfoConnector instance, float value) => 
+        public static void set_FPS(SystemInfoConnector instance, float value) =>
             throw new NotImplementedException();
 
         [HarmonyPatch("ImmediateFPS", MethodType.Setter)]
         [HarmonyReversePatch]
         public static void set_ImmediateFPS(SystemInfoConnector instance, float value) =>
+            throw new NotImplementedException();
+    }
+
+    [HarmonyPatch(typeof(UnityAssetIntegrator))]
+    public static class AssetIntegratorPatch
+    {
+        [HarmonyPatch("ProcessQueue", typeof(double))]
+        [HarmonyPrefix]
+        public static bool ProcessQueue(UnityAssetIntegrator __instance, ref int __result,
+            ref SpinQueue<Action> ___taskQueue)
+        {
+            lock (PacketManager.AssetTaskQueue)
+                while (___taskQueue.TryDequeue(out var val))
+                    PacketManager.AssetTaskQueue.Add(val);
+            __result = 0;
+            return false;
+        }
+        [HarmonyPatch("ProcessQueue", typeof(double), typeof(bool))]
+        [HarmonyReversePatch()]
+        public static void ProcessQueue(UnityAssetIntegrator instance, double maxMilliseconds, bool renderThread) =>
             throw new NotImplementedException();
     }
 }
