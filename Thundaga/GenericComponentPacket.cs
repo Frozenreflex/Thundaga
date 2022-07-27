@@ -13,11 +13,14 @@ namespace Thundaga
         public GenericComponentPacket(IConnector connector)
         {
             _connector = connector;
-            //do mesh patches to prevent thread safety errors
             //TODO: is this heavy on performance?
-            if (connector is MeshRendererConnectorBase<MeshRenderer,UnityEngine.MeshRenderer> meshConnector)
-                MeshRendererConnectorPatch.set_meshWasChanged(meshConnector,
-                    meshConnector.Owner.Mesh.GetWasChangedAndClear());
+            if (!(connector is MeshRendererConnectorBase<MeshRenderer, UnityEngine.MeshRenderer> meshConnector)) return;
+            var owner = meshConnector.Owner;
+            MeshRendererConnectorPatch.set_meshWasChanged(meshConnector,
+                owner.Mesh.GetWasChangedAndClear());
+            owner.SortingOrder.GetWasChangedAndClear();
+            owner.ShadowCastMode.GetWasChangedAndClear();
+            owner.MotionVectorMode.GetWasChangedAndClear();
         }
     }
     public class GenericComponentDestroyPacket : ConnectorPacket<IConnector>

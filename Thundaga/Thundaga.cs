@@ -159,7 +159,8 @@ namespace Thundaga
             throw new NotImplementedException();
     }
 
-    [HarmonyPatch(typeof(MeshRendererConnectorBase<MeshRenderer,UnityEngine.MeshRenderer>))]
+    [HarmonyPatch(typeof(SkinnedMeshRendererConnector))]
+    [HarmonyPatch(typeof(MeshRendererConnectorBase<MeshRenderer, UnityEngine.MeshRenderer>))]
     public class MeshRendererConnectorPatch
     {
         [HarmonyPatch("set_meshWasChanged")]
@@ -171,10 +172,10 @@ namespace Thundaga
         [HarmonyPatch("ApplyChanges")]
         [HarmonyTranspiler]
         public static IEnumerable<CodeInstruction> ApplyChangesTranspiler(
-            IEnumerable<CodeInstruction> instructions)
+            IEnumerable<CodeInstruction> instructions, ILGenerator generator)
         {
+            //remove GetWasChangedAndClear methods to prevent thread errors
             var codes = new List<CodeInstruction>(instructions);
-            var indices = new List<int>();
             codes.Reverse();
             for (var a = 0; a < 3; a++)
             {
@@ -185,8 +186,24 @@ namespace Thundaga
                         break;
                     }
             }
+            for (var i = 0; i < codes.Count; i++) 
+                if (codes[i].opcode == OpCodes.Beq_S)
+                {
+                    codes.RemoveRange(i, 6);
+                    break;
+                }
+            for (var i = 0; i < codes.Count; i++) 
+                if (codes[i].opcode == OpCodes.Call && codes[i].operand.ToString().Contains("set_meshWasChanged"))
+                {
+                    for (var h = 0; h < 7; h++)
+                    {
+                        var code = codes[i + h];
+                        code.opcode = OpCodes.Nop;
+                        code.operand = null;
+                    };
+                    break;
+                }
             codes.Reverse();
-            UniLog.Log(codes.ElementsToString());
             return codes;
         }
     }
