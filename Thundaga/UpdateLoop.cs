@@ -2,6 +2,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Reflection;
 using BaseX;
 using FrooxEngine;
 using HarmonyLib;
@@ -60,7 +62,7 @@ namespace Thundaga
                 return false;
             if (___shutdownEnvironment)
             {
-                UniLog.Log("Shutting down environment", false);
+                UniLog.Log("Shutting down environment");
                 try
                 {
                     ___engine?.Dispose();
@@ -69,7 +71,6 @@ namespace Thundaga
                 {
                     UniLog.Error("Exception disposing the engine:\n" + ___engine);
                 }
-
                 ___engine = null;
                 QuitApplication(__instance);
                 return false;
@@ -142,7 +143,6 @@ namespace Thundaga
                                 UniLog.Error(e.ToString());
                             }
                         }
-
                         var assetTaskQueue = PacketManager.GetQueuedAssetTasks();
                         foreach (var task in assetTaskQueue)
                         {
@@ -155,8 +155,16 @@ namespace Thundaga
                                 UniLog.Error(e.ToString());
                             }
                         }
-                        AssetIntegratorPatch.ProcessQueue((UnityAssetIntegrator) Engine.Current.AssetManager.Connector,
+                        
+                        var assetIntegrator = Engine.Current.AssetManager.Connector as UnityAssetIntegrator;
+                        /*
+                        var a = AssetIntegratorPatch.ProcessQueue(assetIntegrator,
                             2, false);
+                            */
+                        AssetIntegratorPatch.ProcessQueueMethod.Invoke(assetIntegrator, new object[]
+                        {
+                            2, false
+                        });
 
                         var focusedWorld = ___engine.WorldManager.FocusedWorld;
                         if (focusedWorld != null)
@@ -253,6 +261,8 @@ namespace Thundaga
 
                 while (___actions.TryDequeue(out var val1))
                     val1();
+                //this would be a memory leak...
+                //but it doesn't seem to be used anywhere...
                 /*
                 while (__instance.messages.TryDequeue(out var val2))
                 {
@@ -263,7 +273,6 @@ namespace Thundaga
                 }
                 */
             }
-
             return false;
         }
 
@@ -301,24 +310,20 @@ namespace Thundaga
         public static void set_ImmediateFPS(SystemInfoConnector instance, float value) =>
             throw new NotImplementedException();
     }
-
     [HarmonyPatch(typeof(UnityAssetIntegrator))]
     public static class AssetIntegratorPatch
     {
-        [HarmonyPatch("ProcessQueue", typeof(double))]
-        [HarmonyPrefix]
-        public static bool ProcessQueue(UnityAssetIntegrator __instance, ref int __result,
-            ref SpinQueue<Action> ___taskQueue)
+        public static MethodInfo ProcessQueueMethod;
+        static AssetIntegratorPatch()
         {
-            lock (PacketManager.AssetTaskQueue)
-                while (___taskQueue.TryDequeue(out var val))
-                    PacketManager.AssetTaskQueue.Add(val);
-            __result = 0;
-            return false;
+            ProcessQueueMethod = typeof(UnityAssetIntegrator).GetMethods(AccessTools.all)
+                .First(i => i.Name.Contains("ProcessQueue") && i.GetParameters().Length == 2);
         }
+        /*
         [HarmonyPatch("ProcessQueue", typeof(double), typeof(bool))]
-        [HarmonyReversePatch()]
-        public static void ProcessQueue(UnityAssetIntegrator instance, double maxMilliseconds, bool renderThread) =>
-            throw new NotImplementedException();
+        [HarmonyReversePatch]
+        public static int ProcessQueue(UnityAssetIntegrator instance, double maxMilliseconds, bool renderThread) =>
+            throw new NotImplementedException("utterly and completely retarded");
+            */
     }
 }

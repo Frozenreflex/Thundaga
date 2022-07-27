@@ -1,5 +1,6 @@
 using System;
 using FrooxEngine;
+using UnityNeos;
 
 namespace Thundaga
 {
@@ -12,6 +13,11 @@ namespace Thundaga
         public GenericComponentPacket(IConnector connector)
         {
             _connector = connector;
+            //do mesh patches to prevent thread safety errors
+            //TODO: is this heavy on performance?
+            if (connector is MeshRendererConnectorBase<MeshRenderer,UnityEngine.MeshRenderer> meshConnector)
+                MeshRendererConnectorPatch.set_meshWasChanged(meshConnector,
+                    meshConnector.Owner.Mesh.GetWasChangedAndClear());
         }
     }
     public class GenericComponentDestroyPacket : ConnectorPacket<IConnector>

@@ -1,5 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
+using BaseX;
 using HarmonyLib;
 using NeosModLoader;
 using FrooxEngine;
@@ -29,8 +33,22 @@ namespace Thundaga
             harmony.Patch(update, new HarmonyMethod(patches.GetMethod("InternalUpdateConnector")));
             harmony.Patch(destroy, new HarmonyMethod(patches.GetMethod("InternalRunDestruction")));
             harmony.Patch(initialize, new HarmonyMethod(patches.GetMethod("InternalRunStartup")));
-            
+
+            //todo: replace this nonsense with something better
+            //this isn't super high on my priority list though since it runs only once and works
+            var ambiguitySolver =
+                typeof(UnityAssetIntegrator).GetMethods(AccessTools.all)
+                    .Where(i => i.Name.Contains("ProcessQueue"));
+            foreach (var ambiguous in ambiguitySolver)
+            {
+                var paramLength = ambiguous.GetParameters().Length;
+                if (paramLength == 1)
+                    harmony.Patch(ambiguous,
+                        new HarmonyMethod(
+                            typeof(ExtraPatches).GetMethod(nameof(ExtraPatches.ProcessQueue))));
+            }
             harmony.PatchAll();
+            Msg("Patched methods");
             //do this if we need patches for platform specific connectors
             /*
             switch (Engine.Current.Platform)
@@ -132,15 +150,56 @@ namespace Thundaga
     {
         [HarmonyPatch("InternalRunStartup", MethodType.Normal)]
         [HarmonyReversePatch]
-        public static void InternalRunStartup(ComponentBase<Component> instance)
-        {
+        public static void InternalRunStartup(ComponentBase<Component> instance) => 
             throw new NotImplementedException();
-        }
+
         [HarmonyPatch("InternalRunDestruction", MethodType.Normal)]
         [HarmonyReversePatch]
-        public static void InternalRunDestruction(ComponentBase<Component> instance)
-        {
+        public static void InternalRunDestruction(ComponentBase<Component> instance) =>
             throw new NotImplementedException();
+    }
+
+    [HarmonyPatch(typeof(MeshRendererConnectorBase<MeshRenderer,UnityEngine.MeshRenderer>))]
+    public class MeshRendererConnectorPatch
+    {
+        [HarmonyPatch("set_meshWasChanged")]
+        [HarmonyReversePatch]
+        public static void set_meshWasChanged(
+            MeshRendererConnectorBase<MeshRenderer, UnityEngine.MeshRenderer> instance, bool value) =>
+            throw new NotImplementedException();
+        
+        [HarmonyPatch("ApplyChanges")]
+        [HarmonyTranspiler]
+        public static IEnumerable<CodeInstruction> ApplyChangesTranspiler(
+            IEnumerable<CodeInstruction> instructions)
+        {
+            var codes = new List<CodeInstruction>(instructions);
+            var indices = new List<int>();
+            codes.Reverse();
+            for (var a = 0; a < 3; a++)
+            {
+                for (var i = 0; i < codes.Count; i++)
+                    if (codes[i].opcode == OpCodes.Brfalse_S)
+                    {
+                        codes.RemoveRange(i, 6);
+                        break;
+                    }
+            }
+            codes.Reverse();
+            UniLog.Log(codes.ElementsToString());
+            return codes;
+        }
+    }
+    public static class ExtraPatches
+    {
+        public static bool ProcessQueue(UnityAssetIntegrator __instance, ref int __result,
+            ref SpinQueue<Action> ___taskQueue)
+        {
+            lock (PacketManager.AssetTaskQueue)
+                while (___taskQueue.TryDequeue(out var val))
+                    PacketManager.AssetTaskQueue.Add(val);
+            __result = 0;
+            return false;
         }
     }
 }
