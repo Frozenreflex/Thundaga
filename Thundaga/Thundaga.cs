@@ -33,7 +33,7 @@ namespace Thundaga
             Msg("patched harmony lmao");
             Msg(AccessTools.DeclaredMethod(typeof(SkinnedMeshRendererConnector), "Initialize") != null);
             */
-            var patches = typeof(ImplementableComponentPatches<>);
+            var patches = typeof(ImplementableComponentPatches);
             var a = typeof(ImplementableComponent<>);
             var update = a.GetMethod("InternalUpdateConnector", AccessTools.all);
             var destroy = a.GetMethod("InternalRunDestruction", AccessTools.all);
@@ -107,20 +107,20 @@ namespace Thundaga
         }
     }
     
-    public static class ImplementableComponentPatches<T> where T : class, IConnector
+    public static class ImplementableComponentPatches
     {
-        public static bool InternalUpdateConnector(ImplementableComponent<T> __instance)
+        public static bool InternalUpdateConnector(ImplementableComponent<IConnector> __instance)
         {
             PacketManager.Enqueue(new GenericComponentPacket(__instance.Connector));
             return false;
         }
-        public static bool InternalRunStartup(ImplementableComponent<T> __instance)
+        public static bool InternalRunStartup(ImplementableComponent<IConnector> __instance)
         {
             ComponentBasePatch.InternalRunStartup(__instance);
             PacketManager.Enqueue(new GenericComponentInitializePacket(__instance.Connector));
             return false;
         }
-        public static bool InternalRunDestruction(ImplementableComponent<T> __instance)
+        public static bool InternalRunDestruction(ImplementableComponent<IConnector> __instance)
         {
             ComponentBasePatch.InternalRunDestruction(__instance);
             PacketManager.Enqueue(new GenericComponentDestroyPacket(__instance.Connector, __instance.World.IsDestroyed));
