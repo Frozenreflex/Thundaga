@@ -24,6 +24,7 @@ namespace Thundaga
         public override void OnEngineInit()
         {
             var harmony = new Harmony("Thundaga");
+            /*
             _unityNeos = Assembly.GetAssembly(typeof(SkinnedMeshRendererConnector));
             Msg(_unityNeos.FullName);
             var needsChecked = _unityNeos.GetTypes().ToList();
@@ -41,6 +42,7 @@ namespace Thundaga
                     Msg(v.FullName);
                 }
             }
+            */
             harmony.PatchAll();
             switch (Engine.Current.Platform)
             {
