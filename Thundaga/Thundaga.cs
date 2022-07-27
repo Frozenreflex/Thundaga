@@ -180,14 +180,24 @@ namespace Thundaga
                 for (var i = 0; i < codes.Count; i++)
                     if (codes[i].opcode == OpCodes.Brfalse_S)
                     {
-                        codes.RemoveRange(i, 6);
+                        for (var h = 0; h < 6; h++)
+                        {
+                            var code = codes[i + h];
+                            code.opcode = OpCodes.Nop;
+                            code.operand = null;
+                        };
                         break;
                     }
             }
             for (var i = 0; i < codes.Count; i++) 
                 if (codes[i].opcode == OpCodes.Beq_S)
                 {
-                    codes.RemoveRange(i, 6);
+                    for (var h = 0; h < 6; h++)
+                    {
+                        var code = codes[i + h];
+                        code.opcode = OpCodes.Nop;
+                        code.operand = null;
+                    };
                     break;
                 }
             for (var i = 0; i < codes.Count; i++) 
@@ -217,7 +227,7 @@ namespace Thundaga
             //remove WasChanged set to prevent thread errors
             var codes = new List<CodeInstruction>(instructions);
             codes.Reverse();
-            for (var a = 0; a < 3; a++)
+            for (var a = 0; a < 2; a++)
             {
                 for (var i = 0; i < codes.Count; i++)
                     if (codes[i].opcode == OpCodes.Callvirt && codes[i].operand.ToString().Contains("set_WasChanged"))
