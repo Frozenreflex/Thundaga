@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30114.105
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PacketGenerator", "PacketGenerator\PacketGenerator.csproj", "{0F3B96A9-0221-447D-91D6-9AED21F8B0D0}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Thundaga", "Thundaga\Thundaga.csproj", "{266D246F-C1DD-4F3A-AD9E-BE78DCA40462}"
 EndProject
 Global
@@ -16,10 +14,6 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{0F3B96A9-0221-447D-91D6-9AED21F8B0D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0F3B96A9-0221-447D-91D6-9AED21F8B0D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0F3B96A9-0221-447D-91D6-9AED21F8B0D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0F3B96A9-0221-447D-91D6-9AED21F8B0D0}.Release|Any CPU.Build.0 = Release|Any CPU
 		{266D246F-C1DD-4F3A-AD9E-BE78DCA40462}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{266D246F-C1DD-4F3A-AD9E-BE78DCA40462}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{266D246F-C1DD-4F3A-AD9E-BE78DCA40462}.Release|Any CPU.ActiveCfg = Release|Any CPU

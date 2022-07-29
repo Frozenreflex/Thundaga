@@ -75,11 +75,6 @@ namespace Thundaga
             harmony.Patch(destroy3, transpiler: transpilerTwice);
             harmony.Patch(destroy4, transpiler: transpilerLogo);
 
-            var destroyImmediate = typeof(UnityEngine.Object).GetMethods(AccessTools.all)
-                .First(i => i.Name.Contains("DestroyImmediate") && i.GetParameters().Length == 1);
-            var destroySpy = new HarmonyMethod(typeof(ObjectPatch).GetMethod(nameof(ObjectPatch.DestroyImmediate)));
-            harmony.Patch(destroyImmediate, destroySpy);
-
             harmony.PatchAll();
             Msg("Patched methods");
             //do this if we need patches for platform specific connectors

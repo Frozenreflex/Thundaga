@@ -244,12 +244,4 @@ namespace Thundaga
             return codes;
         }
     }
-    public static class ObjectPatch
-    {
-        public static void DestroyImmediate(UnityEngine.Object obj)
-        {
-            UniLog.Log(obj.name);
-            UniLog.Log(new StackTrace());
-        }
-    }
 }
