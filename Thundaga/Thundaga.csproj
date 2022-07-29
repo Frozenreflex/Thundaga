@@ -50,8 +50,4 @@
       <HintPath>$(NeosPath)0Harmony.dll</HintPath>
     </Reference>
   </ItemGroup>
-    <ItemGroup>
-        <ProjectReference Include="..\PacketGenerator\PacketGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
-    </ItemGroup>
-
 </Project>

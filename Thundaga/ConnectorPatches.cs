@@ -31,7 +31,6 @@ namespace Thundaga
         public static void set_meshWasChanged(
             MeshRendererConnectorBase<MeshRenderer, UnityEngine.MeshRenderer> instance, bool value) =>
             throw new NotImplementedException();
-        
         [HarmonyPatch("ApplyChanges")]
         [HarmonyTranspiler]
         public static IEnumerable<CodeInstruction> ApplyChangesTranspiler(
@@ -54,28 +53,29 @@ namespace Thundaga
                         break;
                     }
             }
-            for (var i = 0; i < codes.Count; i++) 
-                if (codes[i].opcode == OpCodes.Beq_S)
+            for (var i = 0; i < codes.Count; i++)
+            {
+                if (codes[i].opcode != OpCodes.Beq_S) continue;
+                for (var h = 0; h < 6; h++)
                 {
-                    for (var h = 0; h < 6; h++)
-                    {
-                        var code = codes[i + h];
-                        code.opcode = OpCodes.Nop;
-                        code.operand = null;
-                    }
-                    break;
+                    var code = codes[i + h];
+                    code.opcode = OpCodes.Nop;
+                    code.operand = null;
                 }
-            for (var i = 0; i < codes.Count; i++) 
-                if (codes[i].opcode == OpCodes.Call && codes[i].operand.ToString().Contains("set_meshWasChanged"))
+                break;
+            }
+            for (var i = 0; i < codes.Count; i++)
+            {
+                if (codes[i].opcode != OpCodes.Call ||
+                    !codes[i].operand.ToString().Contains("set_meshWasChanged")) continue;
+                for (var h = 0; h < 7; h++)
                 {
-                    for (var h = 0; h < 7; h++)
-                    {
-                        var code = codes[i + h];
-                        code.opcode = OpCodes.Nop;
-                        code.operand = null;
-                    }
-                    break;
+                    var code = codes[i + h];
+                    code.opcode = OpCodes.Nop;
+                    code.operand = null;
                 }
+                break;
+            }
             codes.Reverse();
             return codes;
         }
@@ -117,7 +117,6 @@ namespace Thundaga
         public static void set_meshWasChanged(
             MeshRendererConnectorBase<SkinnedMeshRenderer, UnityEngine.SkinnedMeshRenderer> instance, bool value) =>
             throw new NotImplementedException();
-        
         [HarmonyPatch("ApplyChanges")]
         [HarmonyTranspiler]
         public static IEnumerable<CodeInstruction> ApplyChangesTranspiler(
@@ -129,20 +128,8 @@ namespace Thundaga
             for (var a = 0; a < 3; a++)
             {
                 for (var i = 0; i < codes.Count; i++)
-                    if (codes[i].opcode == OpCodes.Brfalse_S)
-                    {
-                        for (var h = 0; h < 6; h++)
-                        {
-                            var code = codes[i + h];
-                            code.opcode = OpCodes.Nop;
-                            code.operand = null;
-                        }
-                        break;
-                    }
-            }
-            for (var i = 0; i < codes.Count; i++) 
-                if (codes[i].opcode == OpCodes.Beq_S)
                 {
+                    if (codes[i].opcode != OpCodes.Brfalse_S) continue;
                     for (var h = 0; h < 6; h++)
                     {
                         var code = codes[i + h];
@@ -151,17 +138,30 @@ namespace Thundaga
                     }
                     break;
                 }
-            for (var i = 0; i < codes.Count; i++) 
-                if (codes[i].opcode == OpCodes.Call && codes[i].operand.ToString().Contains("set_meshWasChanged"))
+            }
+            for (var i = 0; i < codes.Count; i++)
+            {
+                if (codes[i].opcode != OpCodes.Beq_S) continue;
+                for (var h = 0; h < 6; h++)
                 {
-                    for (var h = 0; h < 7; h++)
-                    {
-                        var code = codes[i + h];
-                        code.opcode = OpCodes.Nop;
-                        code.operand = null;
-                    }
-                    break;
+                    var code = codes[i + h];
+                    code.opcode = OpCodes.Nop;
+                    code.operand = null;
                 }
+                break;
+            }
+            for (var i = 0; i < codes.Count; i++)
+            {
+                if (codes[i].opcode != OpCodes.Call ||
+                    !codes[i].operand.ToString().Contains("set_meshWasChanged")) continue;
+                for (var h = 0; h < 7; h++)
+                {
+                    var code = codes[i + h];
+                    code.opcode = OpCodes.Nop;
+                    code.operand = null;
+                }
+                break;
+            }
             codes.Reverse();
             return codes;
         }

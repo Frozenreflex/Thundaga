@@ -47,6 +47,7 @@ namespace Thundaga
     public static class FrooxEngineRunnerPatch
     {
         private static bool _startedUpdating;
+        private static int _lastDiagnosticReport;
 
         [HarmonyPatch("Update")]
         [HarmonyPrefix]
@@ -89,6 +90,13 @@ namespace Thundaga
             }
             else
             {
+                _lastDiagnosticReport--;
+                if (_lastDiagnosticReport <= 0)
+                {
+                    _lastDiagnosticReport = 300;
+                    UniLog.Log("SkinnedMeshRenderer: " + UnityEngine.Object.FindObjectsOfType<UnityEngine.SkinnedMeshRenderer>().Length);
+                }
+                
                 ___stopwatch.Restart();
                 ____externalStopwatch.Stop();
                 try
