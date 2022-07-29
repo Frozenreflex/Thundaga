@@ -47,6 +47,39 @@ namespace Thundaga
                         new HarmonyMethod(
                             typeof(ExtraPatches).GetMethod(nameof(ExtraPatches.ProcessQueue))));
             }
+
+            var destroy1 = AccessTools.AllTypes()
+                .First(i => i.Name.Contains("<>c__DisplayClass14_0") &&
+                            i.DeclaringType == typeof(RenderTextureConnector))
+                .GetMethod("<Unload>b__0", AccessTools.all);
+            var destroy2 = AccessTools.AllTypes()
+                .First(i => i.Name.Contains("<>c__DisplayClass39_1") &&
+                            i.DeclaringType == typeof(TextureConnector))
+                .GetMethod("<SetTextureFormatDX11Native>b__2", AccessTools.all);
+            var destroy3 = AccessTools.AllTypes()
+                .First(i => i.Name.Contains("<>c__DisplayClass49_1") &&
+                            i.DeclaringType == typeof(TextureConnector))
+                .GetMethod("<SetTextureFormatOpenGLNative>b__2", AccessTools.all);
+            //the startup logo
+            var destroy4 = AccessTools.AllTypes()
+                .First(i => i.Name.Contains("<>c__DisplayClass38_0") &&
+                            i.DeclaringType == typeof(FrooxEngineRunner))
+                .GetMethod("<Start>b__6", AccessTools.all);
+            
+            var transpiler = new HarmonyMethod(typeof(DestroyImmediateRemover).GetMethod(nameof(DestroyImmediateRemover.Transpiler)));
+            var transpilerTwice = new HarmonyMethod(typeof(DestroyImmediateRemover).GetMethod(nameof(DestroyImmediateRemover.TranspilerTwice)));
+            var transpilerLogo = new HarmonyMethod(typeof(DestroyImmediateRemover).GetMethod(nameof(DestroyImmediateRemover.OnReadyTranspiler)));
+            
+            harmony.Patch(destroy1, transpiler: transpiler);
+            harmony.Patch(destroy2, transpiler: transpilerTwice);
+            harmony.Patch(destroy3, transpiler: transpilerTwice);
+            harmony.Patch(destroy4, transpiler: transpilerLogo);
+
+            var destroyImmediate = typeof(UnityEngine.Object).GetMethods(AccessTools.all)
+                .First(i => i.Name.Contains("DestroyImmediate") && i.GetParameters().Length == 1);
+            var destroySpy = new HarmonyMethod(typeof(ObjectPatch).GetMethod(nameof(ObjectPatch.DestroyImmediate)));
+            harmony.Patch(destroyImmediate, destroySpy);
+
             harmony.PatchAll();
             Msg("Patched methods");
             //do this if we need patches for platform specific connectors
@@ -143,115 +176,6 @@ namespace Thundaga
             PacketManager.Enqueue(new GenericComponentDestroyPacket(__instance.Connector, destroyed));
             return false;
         }
-    }
-
-    [HarmonyPatch(typeof(ComponentBase<Component>))]
-    public static class ComponentBasePatch
-    {
-        [HarmonyPatch("InternalRunStartup", MethodType.Normal)]
-        [HarmonyReversePatch]
-        public static void InternalRunStartup(ComponentBase<Component> instance) => 
-            throw new NotImplementedException();
-
-        [HarmonyPatch("InternalRunDestruction", MethodType.Normal)]
-        [HarmonyReversePatch]
-        public static void InternalRunDestruction(ComponentBase<Component> instance) =>
-            throw new NotImplementedException();
-    }
-    [HarmonyPatch(typeof(MeshRendererConnectorBase<MeshRenderer, UnityEngine.MeshRenderer>))]
-    public class MeshRendererConnectorPatch
-    {
-        [HarmonyPatch("set_meshWasChanged")]
-        [HarmonyReversePatch]
-        public static void set_meshWasChanged(
-            MeshRendererConnectorBase<MeshRenderer, UnityEngine.MeshRenderer> instance, bool value) =>
-            throw new NotImplementedException();
-        
-        [HarmonyPatch("ApplyChanges")]
-        [HarmonyTranspiler]
-        public static IEnumerable<CodeInstruction> ApplyChangesTranspiler(
-            IEnumerable<CodeInstruction> instructions, ILGenerator generator)
-        {
-            //remove GetWasChangedAndClear methods to prevent thread errors
-            var codes = new List<CodeInstruction>(instructions);
-            codes.Reverse();
-            for (var a = 0; a < 3; a++)
-            {
-                for (var i = 0; i < codes.Count; i++)
-                    if (codes[i].opcode == OpCodes.Brfalse_S)
-                    {
-                        for (var h = 0; h < 6; h++)
-                        {
-                            var code = codes[i + h];
-                            code.opcode = OpCodes.Nop;
-                            code.operand = null;
-                        };
-                        break;
-                    }
-            }
-            for (var i = 0; i < codes.Count; i++) 
-                if (codes[i].opcode == OpCodes.Beq_S)
-                {
-                    for (var h = 0; h < 6; h++)
-                    {
-                        var code = codes[i + h];
-                        code.opcode = OpCodes.Nop;
-                        code.operand = null;
-                    };
-                    break;
-                }
-            for (var i = 0; i < codes.Count; i++) 
-                if (codes[i].opcode == OpCodes.Call && codes[i].operand.ToString().Contains("set_meshWasChanged"))
-                {
-                    for (var h = 0; h < 7; h++)
-                    {
-                        var code = codes[i + h];
-                        code.opcode = OpCodes.Nop;
-                        code.operand = null;
-                    };
-                    break;
-                }
-            codes.Reverse();
-            return codes;
-        }
-    }
-    
-    [HarmonyPatch(typeof(SkinnedMeshRendererConnector))]
-    public static class SkinnedMeshRendererConnectorPatchA
-    {
-        [HarmonyPatch("ApplyChanges")]
-        [HarmonyTranspiler]
-        public static IEnumerable<CodeInstruction> ApplyChangesTranspiler(
-            IEnumerable<CodeInstruction> instructions, ILGenerator generator)
-        {
-            //remove WasChanged set to prevent thread errors
-            var codes = new List<CodeInstruction>(instructions);
-            codes.Reverse();
-            for (var a = 0; a < 2; a++)
-            {
-                for (var i = 0; i < codes.Count; i++)
-                    if (codes[i].opcode == OpCodes.Callvirt && codes[i].operand.ToString().Contains("set_WasChanged"))
-                    {
-                        for (var h = 0; h < 5; h++)
-                        {
-                            codes[i+h].opcode = OpCodes.Nop;
-                            codes[i+h].operand = null;
-                        }
-                        break;
-                    }
-            }
-            codes.Reverse();
-            return codes;
-        }
-    }
-    [HarmonyPatch(typeof(MeshRendererConnectorBase<SkinnedMeshRenderer, UnityEngine.SkinnedMeshRenderer>))]
-    public static class SkinnedMeshRendererConnectorPatchB
-    {
-        [HarmonyPatch("set_meshWasChanged")]
-        [HarmonyReversePatch]
-        public static void set_meshWasChanged(
-            MeshRendererConnectorBase<SkinnedMeshRenderer, UnityEngine.SkinnedMeshRenderer> instance, bool value) =>
-            throw new NotImplementedException();
     }
     public static class ExtraPatches
     {
