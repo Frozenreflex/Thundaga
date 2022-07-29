@@ -48,6 +48,7 @@ namespace Thundaga
     {
         private static bool _startedUpdating;
         private static int _lastDiagnosticReport;
+        private static IntPtr? _renderThreadPointer;
 
         [HarmonyPatch("Update")]
         [HarmonyPrefix]
@@ -165,13 +166,15 @@ namespace Thundaga
                             }
                         }
                         var assetIntegrator = Engine.Current.AssetManager.Connector as UnityAssetIntegrator;
+                        if (!_renderThreadPointer.HasValue)
+                            _renderThreadPointer =
+                                (IntPtr) AssetIntegratorPatch.RenderThreadPointer.GetValue(assetIntegrator);
                         /*
                         if (((SpinQueue<>) AssetIntegratorPatch.RenderThreadQueue
                                 .GetValue(assetIntegrator))
                             .Count > 0)
                             */
-                            GL.IssuePluginEvent(
-                                (IntPtr) AssetIntegratorPatch.RenderThreadPointer.GetValue(assetIntegrator), 0);
+                            GL.IssuePluginEvent(_renderThreadPointer.Value, 0);
                         /*
                         var a = AssetIntegratorPatch.ProcessQueue(assetIntegrator,
                             2, false);
