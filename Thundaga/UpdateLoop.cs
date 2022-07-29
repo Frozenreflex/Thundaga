@@ -93,8 +93,10 @@ namespace Thundaga
                 _lastDiagnosticReport--;
                 if (_lastDiagnosticReport <= 0)
                 {
+                    /*
                     _lastDiagnosticReport = 300;
                     UniLog.Log("SkinnedMeshRenderer: " + UnityEngine.Object.FindObjectsOfType<UnityEngine.SkinnedMeshRenderer>().Length);
+                    */
                 }
                 
                 ___stopwatch.Restart();
@@ -162,8 +164,14 @@ namespace Thundaga
                                 UniLog.Error(e.ToString());
                             }
                         }
-                        
                         var assetIntegrator = Engine.Current.AssetManager.Connector as UnityAssetIntegrator;
+                        /*
+                        if (((SpinQueue<>) AssetIntegratorPatch.RenderThreadQueue
+                                .GetValue(assetIntegrator))
+                            .Count > 0)
+                            */
+                            GL.IssuePluginEvent(
+                                (IntPtr) AssetIntegratorPatch.RenderThreadPointer.GetValue(assetIntegrator), 0);
                         /*
                         var a = AssetIntegratorPatch.ProcessQueue(assetIntegrator,
                             2, false);
@@ -321,10 +329,14 @@ namespace Thundaga
     public static class AssetIntegratorPatch
     {
         public static MethodInfo ProcessQueueMethod;
+        public static FieldInfo RenderThreadPointer;
+        public static FieldInfo RenderThreadQueue;
         static AssetIntegratorPatch()
         {
             ProcessQueueMethod = typeof(UnityAssetIntegrator).GetMethods(AccessTools.all)
                 .First(i => i.Name.Contains("ProcessQueue") && i.GetParameters().Length == 2);
+            RenderThreadPointer = typeof(UnityAssetIntegrator).GetField("renderThreadPointer", AccessTools.all);
+            RenderThreadQueue = typeof(UnityAssetIntegrator).GetField("renderThreadQueue", AccessTools.all);
         }
         /*
         [HarmonyPatch("ProcessQueue", typeof(double), typeof(bool))]

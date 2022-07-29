@@ -1,9 +1,5 @@
-using System;
-using BaseX;
 using FrooxEngine;
-using UnityEngine;
 using UnityNeos;
-using MeshRenderer = FrooxEngine.MeshRenderer;
 
 namespace Thundaga
 {

@@ -49,5 +49,8 @@
     <Reference Include="HarmonyLib">
       <HintPath>$(NeosPath)0Harmony.dll</HintPath>
     </Reference>
+    <Reference Include="NativeGraphics">
+      <HintPath>$(NeosPath)Neos_Data/Managed/NativeGraphics.NET.dll</HintPath>
+    </Reference>
   </ItemGroup>
 </Project>
