@@ -60,6 +60,7 @@ namespace Thundaga
         {
             if (!___engineInitialized)
                 return false;
+            UpdateLoop.shutdown = ___shutdownEnvironment;
             if (___shutdownEnvironment)
             {
                 UniLog.Log("Shutting down environment");
@@ -75,8 +76,6 @@ namespace Thundaga
                 QuitApplication(__instance);
                 return false;
             }
-
-            UpdateLoop.shutdown = ___shutdownEnvironment;
             if (!_startedUpdating)
             {
                 var updateLoop = new Thread(UpdateLoop.Update)
