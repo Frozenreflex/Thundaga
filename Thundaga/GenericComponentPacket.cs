@@ -1,7 +1,9 @@
 using System;
+using BaseX;
 using FrooxEngine;
+using UnityEngine;
 using UnityNeos;
-using SkinnedMeshRenderer = UnityEngine.SkinnedMeshRenderer;
+using MeshRenderer = FrooxEngine.MeshRenderer;
 
 namespace Thundaga
 {
@@ -17,7 +19,7 @@ namespace Thundaga
             switch (connector)
             {
                 //TODO: is this heavy on performance?
-                case MeshRendererConnectorBase<MeshRenderer, UnityEngine.MeshRenderer> meshConnector:
+                case MeshRendererConnector meshConnector:
                 {
                     var owner = meshConnector.Owner;
                     MeshRendererConnectorPatch.set_meshWasChanged(meshConnector,

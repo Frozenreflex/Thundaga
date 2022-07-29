@@ -74,7 +74,7 @@ namespace Thundaga
             harmony.Patch(destroy2, transpiler: transpilerTwice);
             harmony.Patch(destroy3, transpiler: transpilerTwice);
             harmony.Patch(destroy4, transpiler: transpilerLogo);
-
+            
             harmony.PatchAll();
             Msg("Patched methods");
             //do this if we need patches for platform specific connectors

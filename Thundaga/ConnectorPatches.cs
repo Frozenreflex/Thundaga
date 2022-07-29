@@ -1,12 +1,17 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using BaseX;
 using FrooxEngine;
 using HarmonyLib;
+using UnityEngine;
 using UnityNeos;
+using Component = FrooxEngine.Component;
+using MeshRenderer = FrooxEngine.MeshRenderer;
+using SkinnedMeshRenderer = FrooxEngine.SkinnedMeshRenderer;
 
 namespace Thundaga
 {
@@ -33,6 +38,7 @@ namespace Thundaga
             throw new NotImplementedException();
         [HarmonyPatch("ApplyChanges")]
         [HarmonyTranspiler]
+        [HarmonyDebug]
         public static IEnumerable<CodeInstruction> ApplyChangesTranspiler(
             IEnumerable<CodeInstruction> instructions)
         {
@@ -77,10 +83,25 @@ namespace Thundaga
                 break;
             }
             codes.Reverse();
+            //replace generic set with our method
+            var index = codes.IndexOf(codes.Where(i =>
+                i.opcode == OpCodes.Callvirt && i.operand.ToString().Contains("AddComponent")).ToList()[1]);
+            codes[index].operand = typeof(MeshGenericFix).GetMethod("SetMeshRendererPatch");
+            codes[index].opcode = OpCodes.Call;
+            codes.Insert(index, new CodeInstruction(OpCodes.Ldarg_0));
             return codes;
         }
     }
-    
+
+    public static class MeshGenericFix
+    {
+        public static Renderer SetMeshRendererPatch(GameObject gameObject, IConnector obj)
+        {
+            if (obj is MeshRendererConnector)
+                return gameObject.AddComponent<UnityEngine.MeshRenderer>();
+            return gameObject.AddComponent<UnityEngine.SkinnedMeshRenderer>();
+        }
+    }
     [HarmonyPatch(typeof(SkinnedMeshRendererConnector))]
     public static class SkinnedMeshRendererConnectorPatchA
     {
@@ -163,7 +184,18 @@ namespace Thundaga
                 break;
             }
             codes.Reverse();
+            //replace generic set with our method
+            var index = codes.IndexOf(codes.Where(i =>
+                i.opcode == OpCodes.Callvirt && i.operand.ToString().Contains("AddComponent")).ToList()[1]);
+            codes[index].operand = typeof(MeshGenericFix).GetMethod("SetMeshRendererPatch");
+            codes[index].opcode = OpCodes.Call;
+            codes.Insert(index, new CodeInstruction(OpCodes.Ldarg_0));
             return codes;
+        }
+        public static UnityEngine.SkinnedMeshRenderer SetMeshRendererPatch(GameObject gameObject)
+        {
+            UniLog.Log("hello world skinned");
+            return gameObject.AddComponent<UnityEngine.SkinnedMeshRenderer>();
         }
     }
     [HarmonyPatch(typeof(MeshConnector))]
