@@ -153,7 +153,7 @@ namespace Thundaga
         public static bool InternalRunStartup(ImplementableComponent<IConnector> __instance)
         {
             ComponentBasePatch.InternalRunStartup(__instance);
-            PacketManager.Enqueue(new GenericComponentInitializePacket(__instance.Connector));
+            PacketManager.Enqueue(new GenericComponentInitializePacket(__instance.Connector, 0, __instance));
             return false;
         }
         public static bool DisposeConnector(ImplementableComponent<IConnector> __instance)
@@ -168,6 +168,31 @@ namespace Thundaga
         [HarmonyReversePatch]
         public static void set_Connector(ImplementableComponent<IConnector> instance, IConnector connector) =>
             throw new NotImplementedException();
+        [HarmonyPatch("InitializeConnector")]
+        [HarmonyReversePatch]
+        public static void InitializeConnector(ImplementableComponent<IConnector> instance) =>
+            throw new NotImplementedException();
+
+        [HarmonyPatch("InitializeConnector")]
+        [HarmonyTranspiler]
+        public static IEnumerable<CodeInstruction> InitializeConnectorTranspiler(
+            IEnumerable<CodeInstruction> instructions)
+        {
+            var codes = new List<CodeInstruction>(instructions);
+            for (var i = 0; i < codes.Count; i++)
+            {
+                var code = codes[i];
+                if (code.opcode != OpCodes.Box) continue;
+                for (var h = 0; h < 5; h++)
+                {
+                    codes[i + h].opcode = OpCodes.Nop;
+                    codes[i + h].operand = null;
+                }
+
+                return codes;
+            }
+            return codes;
+        }
     }
     public static class ExtraPatches
     {

@@ -13,6 +13,7 @@ using UnityNeos;
 using System.Threading;
 using System.Threading.Tasks;
 using Debug = UnityEngine.Debug;
+using ParticleSystem = FrooxEngine.ParticleSystem;
 using ThreadPriority = System.Threading.ThreadPriority;
 
 namespace Thundaga
@@ -47,8 +48,28 @@ namespace Thundaga
     public static class FrooxEngineRunnerPatch
     {
         private static bool _startedUpdating;
-        private static int _lastDiagnosticReport;
+        private static int _lastDiagnosticReport = 1800;
         private static IntPtr? _renderThreadPointer;
+        private static bool _refreshAllConnectors;
+
+        private static void RefreshAllConnectors()
+        {
+            var count = 0;
+            foreach (var component in 
+                     from world in Engine.Current.WorldManager.Worlds.ToList()
+                     from slot in world.AllSlots.ToList()
+                     from component in slot.Components.ToList()
+                     select component)
+            {
+                if (!(component is ImplementableComponent<IConnector> implementable) || implementable is ParticleSystem) continue;
+                count++;
+                implementable.Connector.Destroy(false);
+                ImplementableComponentPatches.set_Connector(implementable, null);
+                //ImplementableComponentPatches.InitializeConnector(implementable);
+                implementable.Connector.Initialize();
+            }
+            UniLog.Log($"Refreshed {count} components");
+        }
 
         [HarmonyPatch("Update")]
         [HarmonyPrefix]
@@ -94,12 +115,13 @@ namespace Thundaga
                 _lastDiagnosticReport--;
                 if (_lastDiagnosticReport <= 0)
                 {
-                    /*
-                    _lastDiagnosticReport = 300;
-                    UniLog.Log("SkinnedMeshRenderer: " + UnityEngine.Object.FindObjectsOfType<UnityEngine.SkinnedMeshRenderer>().Length);
-                    */
+                    
+                    _lastDiagnosticReport = 3600;
+                    _refreshAllConnectors = true;
+                    //UniLog.Log("Reinitializing...");
+                    //UniLog.Log("SkinnedMeshRenderer: " + UnityEngine.Object.FindObjectsOfType<UnityEngine.SkinnedMeshRenderer>().Length);
                 }
-                
+
                 ___stopwatch.Restart();
                 ____externalStopwatch.Stop();
                 try
@@ -183,6 +205,12 @@ namespace Thundaga
                         {
                             2, false
                         });
+                        
+                        if (_refreshAllConnectors)
+                        {
+                            _refreshAllConnectors = false;
+                            //RefreshAllConnectors();
+                        }
 
                         var focusedWorld = ___engine.WorldManager.FocusedWorld;
                         if (focusedWorld != null)

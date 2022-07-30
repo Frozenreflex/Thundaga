@@ -70,7 +70,7 @@ namespace Thundaga.Packets
         }
     }
     [HarmonyPatch(typeof(SlotConnector))]
-    public class SlotConnectorPatches
+    public static class SlotConnectorPatches
     {
         [HarmonyPatch("ApplyChanges")]
         [HarmonyPrefix]
@@ -100,5 +100,14 @@ namespace Thundaga.Packets
         [HarmonyReversePatch]
         public static void DestroyOriginal(SlotConnector instance, bool destroyingWorld) =>
             throw new NotImplementedException();
+    }
+    [HarmonyPatch(typeof(Slot))]
+    public static class SlotPatches
+    {
+        [HarmonyPatch("set_Connector")]
+        [HarmonyReversePatch]
+        public static void set_Connector(Slot instance, ISlotConnector connector) =>
+            throw new NotImplementedException();
+        
     }
 }
