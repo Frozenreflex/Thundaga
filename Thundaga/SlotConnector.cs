@@ -57,10 +57,7 @@ namespace Thundaga.Packets
             _connector = connector;
             _destroyingWorld = destroyingWorld;
         }
-        public void ApplyChange()
-        {
-            SlotConnectorPatches.DestroyOriginal(_connector, _destroyingWorld);
-        }
+        public void ApplyChange() => SlotConnectorPatches.DestroyOriginal(_connector, _destroyingWorld);
     }
     public static class SlotConnectorInfo
     {
@@ -91,21 +88,17 @@ namespace Thundaga.Packets
         }
         [HarmonyPatch("UpdateLayer")]
         [HarmonyReversePatch]
-        public static void UpdateLayer(SlotConnector instance)
-        {
+        public static void UpdateLayer(SlotConnector instance) => 
             throw new NotImplementedException();
-        }
+
         [HarmonyPatch("UpdateParent")]
         [HarmonyReversePatch]
-        public static void UpdateParent(SlotConnector instance)
-        {
+        public static void UpdateParent(SlotConnector instance) => 
             throw new NotImplementedException();
-        }
+
         [HarmonyPatch("Destroy")]
         [HarmonyReversePatch]
-        public static void DestroyOriginal(SlotConnector instance, bool destroyingWorld)
-        {
+        public static void DestroyOriginal(SlotConnector instance, bool destroyingWorld) =>
             throw new NotImplementedException();
-        }
     }
 }

@@ -27,26 +27,19 @@ namespace Thundaga
             var patches = typeof(ImplementableComponentPatches);
             var a = typeof(ImplementableComponent<>).MakeGenericType(typeof(IConnector));
             var update = a.GetMethod("InternalUpdateConnector", AccessTools.all);
-            var destroy = a.GetMethod("InternalRunDestruction", AccessTools.all);
+            var destroy = a.GetMethod("DisposeConnector", AccessTools.all);
             var initialize = a.GetMethod("InternalRunStartup", AccessTools.all);
 
             harmony.Patch(update, new HarmonyMethod(patches.GetMethod("InternalUpdateConnector")));
-            harmony.Patch(destroy, new HarmonyMethod(patches.GetMethod("InternalRunDestruction")));
+            harmony.Patch(destroy, new HarmonyMethod(patches.GetMethod("DisposeConnector")));
             harmony.Patch(initialize, new HarmonyMethod(patches.GetMethod("InternalRunStartup")));
-
-            //todo: replace this nonsense with something better
-            //this isn't super high on my priority list though since it runs only once and works
+            
             var ambiguitySolver =
                 typeof(UnityAssetIntegrator).GetMethods(AccessTools.all)
-                    .Where(i => i.Name.Contains("ProcessQueue"));
-            foreach (var ambiguous in ambiguitySolver)
-            {
-                var paramLength = ambiguous.GetParameters().Length;
-                if (paramLength == 1)
-                    harmony.Patch(ambiguous,
-                        new HarmonyMethod(
-                            typeof(ExtraPatches).GetMethod(nameof(ExtraPatches.ProcessQueue))));
-            }
+                    .First(i => i.Name.Contains("ProcessQueue") && i.GetParameters().Length == 1);
+            harmony.Patch(ambiguitySolver,
+                new HarmonyMethod(
+                    typeof(ExtraPatches).GetMethod(nameof(ExtraPatches.ProcessQueue))));
 
             var destroy1 = AccessTools.AllTypes()
                 .First(i => i.Name.Contains("<>c__DisplayClass14_0") &&
@@ -149,7 +142,7 @@ namespace Thundaga
             }
         }
     }
-    
+    [HarmonyPatch(typeof(ImplementableComponent<IConnector>))]
     public static class ImplementableComponentPatches
     {
         public static bool InternalUpdateConnector(ImplementableComponent<IConnector> __instance)
@@ -163,14 +156,18 @@ namespace Thundaga
             PacketManager.Enqueue(new GenericComponentInitializePacket(__instance.Connector));
             return false;
         }
-        public static bool InternalRunDestruction(ImplementableComponent<IConnector> __instance)
+        public static bool DisposeConnector(ImplementableComponent<IConnector> __instance)
         {
-            ComponentBasePatch.InternalRunDestruction(__instance);
-            var destroyed = false;
-            if (__instance.World != null) destroyed = __instance.World.IsDestroyed;
+            var destroyed = __instance.World == null || __instance.World.IsDisposed;
             PacketManager.Enqueue(new GenericComponentDestroyPacket(__instance.Connector, destroyed));
+            __instance.Connector?.RemoveOwner();
+            set_Connector(__instance, null);
             return false;
         }
+        [HarmonyPatch("set_Connector")]
+        [HarmonyReversePatch]
+        public static void set_Connector(ImplementableComponent<IConnector> instance, IConnector connector) =>
+            throw new NotImplementedException();
     }
     public static class ExtraPatches
     {
