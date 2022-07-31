@@ -41,13 +41,14 @@
     </Reference>
     <Reference Include="NeosModLoader">
       <HintPath>$(NeosPath)NeosModLoader.dll</HintPath>
-      <HintPath>$(NeosPath)Libraries/NeosModLoader.dll</HintPath>
+      <HintPath Condition="Exists('$(NeosPath)Libraries/NeosModLoader.dll')">$(NeosPath)Libraries/NeosModLoader.dll</HintPath>
     </Reference>
     <Reference Include="FrooxEngine">
       <HintPath>$(NeosPath)Neos_Data/Managed/FrooxEngine.dll</HintPath>
     </Reference>
     <Reference Include="HarmonyLib">
       <HintPath>$(NeosPath)0Harmony.dll</HintPath>
+      <HintPath Condition="Exists('$(NeosPath)nml_libs/0Harmony.dll')">$(NeosPath)nml_libs/0Harmony.dll</HintPath>
     </Reference>
     <Reference Include="NativeGraphics">
       <HintPath>$(NeosPath)Neos_Data/Managed/NativeGraphics.NET.dll</HintPath>
