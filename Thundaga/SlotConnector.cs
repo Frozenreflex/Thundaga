@@ -13,7 +13,6 @@ namespace Thundaga.Packets
 {
     public class SlotConnectorPacket : ConnectorPacket<SlotConnector>
     {
-        //private ISlotConnector _parentConnector;
         private bool _shouldUpdateParent;
         private bool? _active;
         private Vector3? _position;
@@ -25,13 +24,12 @@ namespace Thundaga.Packets
             _connector = connector;
             if (_connector.Owner == null)
             {
-                UniLog.Log("Found orphaned connector, reconnecting...");
+                UniLog.Log("Found orphaned connector, attempting to reconnect...");
                 foreach (var component in Engine.Current.WorldManager.Worlds.ToList().SelectMany(world =>
                              world.AllSlots.ToList().SelectMany(slot => slot.Components.ToList())))
                 {
                     if (!(component is ImplementableComponent<IConnector> implementableComponent) ||
                         implementableComponent.Connector != _connector) continue;
-                    UniLog.Log("Failed to reconnect orphaned connector");
                     _connector.AssignOwner(implementableComponent);
                     break;
                 }
@@ -47,6 +45,11 @@ namespace Thundaga.Packets
         }
         public override void ApplyChange()
         {
+            if (_connector.Owner?.Parent != null && _connector.Owner.Parent.Connector == null)
+            {
+                UniLog.Log("Slot connector's parent's connector does not exist, waiting for next valid update...");
+                PacketManager.Enqueue(_connector.GetPacket());
+            }
             if (_connector.GeneratedGameObject == null) return;
             if (_shouldUpdateParent) SlotConnectorPatches.UpdateParent(_connector);
             SlotConnectorPatches.UpdateLayer(_connector);

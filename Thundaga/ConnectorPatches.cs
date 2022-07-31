@@ -127,8 +127,30 @@ namespace Thundaga
                     }
             }
             codes.Reverse();
+            //get actual blendshape count to prevent errors
+            for (var i = 0; i < codes.Count; i++)
+            {
+                if (codes[i].opcode != OpCodes.Ldloc_S ||
+                    !codes[i].operand.ToString().Contains("14")) continue;
+                codes[i].opcode = OpCodes.Ldarg_0;
+                codes[i].operand = null;
+                codes[i + 1].operand = typeof(SkinnedMeshRendererConnectorPatchA).GetMethod("GetBlendShapeCount");
+                /*
+                var insertCodes = new CodeInstruction[]
+                {
+                    new CodeInstruction(OpCodes.Ldarg_0),
+                    new CodeInstruction(OpCodes.Callvirt,
+                        typeof(SkinnedMeshRendererConnectorPatchA).GetMethod("GetBlendShapeCount")),
+                    new CodeInstruction(OpCodes.Stloc_S, (byte)20)
+                };
+                codes.InsertRange(i, insertCodes);
+                */
+                break;
+            }
             return codes;
         }
+        public static int GetBlendShapeCount(SkinnedMeshRendererConnector instance) =>
+            instance.MeshRenderer.sharedMesh.blendShapeCount;
     }
     [HarmonyPatch(typeof(MeshRendererConnectorBase<SkinnedMeshRenderer, UnityEngine.SkinnedMeshRenderer>))]
     public static class SkinnedMeshRendererConnectorPatchB

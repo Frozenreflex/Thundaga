@@ -19,9 +19,23 @@ namespace Thundaga
         public override string Version => "1.0.0";
 
         private static bool _first_trigger = false;
+        
+        [AutoRegisterConfigKey]
+        public readonly ModConfigurationKey<bool> Refresh = new ModConfigurationKey<bool>("refresh", "Refresh Connectors", () => false);
+
+        private void OnConfigurationChanged(ConfigurationChangedEvent @event)
+        {
+            var config = GetConfiguration();
+            if (@event.Key == Refresh && config.GetValue(Refresh))
+            {
+                Msg("Refreshing connectors...");
+                FrooxEngineRunnerPatch.ShouldRefreshAllConnectors = true;
+            }
+        }
 
         public override void OnEngineInit()
         {
+            ModConfiguration.OnAnyConfigurationChanged += OnConfigurationChanged;
             var harmony = new Harmony("Thundaga");
 
             var patches = typeof(ImplementableComponentPatches);

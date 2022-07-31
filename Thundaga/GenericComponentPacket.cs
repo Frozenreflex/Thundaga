@@ -81,7 +81,7 @@ namespace Thundaga
                 UniLog.Log($"Connector has reached initialization threshold and is being ignored: {(_connector != null ? _connector.GetType().ToString() : "Null Connector")}");
                 return;
             }
-            if (_initializing.Slot.Parent == null && !_initializing.Slot.IsRootSlot)
+            if (_initializing.Slot.Parent.Connector == null && !_initializing.Slot.IsRootSlot)
             {
                 var name = _initializing.Slot?.Name;
                 UniLog.Log($"Component {_initializing.GetType()} on {name} has no slot parent, waiting...");

@@ -50,7 +50,7 @@ namespace Thundaga
         private static bool _startedUpdating;
         private static int _lastDiagnosticReport = 1800;
         private static IntPtr? _renderThreadPointer;
-        private static bool _refreshAllConnectors;
+        public static bool ShouldRefreshAllConnectors;
 
         private static void RefreshAllConnectors()
         {
@@ -63,12 +63,32 @@ namespace Thundaga
             {
                 if (!(component is ImplementableComponent<IConnector> implementable) || implementable is ParticleSystem) continue;
                 count++;
-                implementable.Connector.Destroy(false);
-                ImplementableComponentPatches.set_Connector(implementable, null);
-                //ImplementableComponentPatches.InitializeConnector(implementable);
-                implementable.Connector.Initialize();
+                try
+                {
+                    implementable.Connector.Destroy(false);
+                    //ImplementableComponentPatches.set_Connector(implementable, null);
+                    ImplementableComponentPatches.InitializeConnector(implementable);
+                    implementable.Connector.AssignOwner(implementable);
+                    var con = implementable.Connector;
+                    con.Initialize();
+                    if (con is MeshRendererConnector mesh)
+                    {
+                        MeshRendererConnectorPatch.set_meshWasChanged(mesh, true);
+                    }
+                    if (con is SkinnedMeshRendererConnector smesh)
+                    {
+                        SkinnedMeshRendererConnectorPatchB.set_meshWasChanged(smesh, true);
+                    }
+                    con.ApplyChanges();
+                }
+                catch (Exception e)
+                {
+                    UniLog.Log(e);
+                }
             }
             UniLog.Log($"Refreshed {count} components");
+            PacketManager.IntermittentPacketQueue.Clear();
+            PacketManager.NeosPacketQueue.Clear();
         }
 
         [HarmonyPatch("Update")]
@@ -117,7 +137,7 @@ namespace Thundaga
                 {
                     
                     _lastDiagnosticReport = 3600;
-                    _refreshAllConnectors = true;
+                    //_refreshAllConnectors = true;
                     //UniLog.Log("Reinitializing...");
                     //UniLog.Log("SkinnedMeshRenderer: " + UnityEngine.Object.FindObjectsOfType<UnityEngine.SkinnedMeshRenderer>().Length);
                 }
@@ -198,10 +218,10 @@ namespace Thundaga
                             2, false
                         });
                         
-                        if (_refreshAllConnectors)
+                        if (ShouldRefreshAllConnectors)
                         {
-                            _refreshAllConnectors = false;
-                            //RefreshAllConnectors();
+                            ShouldRefreshAllConnectors = false;
+                            RefreshAllConnectors();
                         }
 
                         var focusedWorld = ___engine.WorldManager.FocusedWorld;
