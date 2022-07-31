@@ -65,30 +65,13 @@ namespace Thundaga
         private readonly ImplementableComponent<IConnector> _initializing;
         public override void ApplyChange()
         {
-            /*
-            if (_connector.Owner == null)
-            {
-                UniLog.Log($"Connector has no owner: {(_connector != null ? _connector.GetType().ToString() : "Null Connector")}");
-                if (_queuedInitializations < 20)
-                {
-                    if (_initializing.Connector != _connector)
-                    {
-                        UniLog.Log($"Component {_initializing.GetType()} somehow managed to get a new connector");
-                    }
-                    //retry next update because something has gone horribly wrong
-                    UniLog.Log($"Connector packet being re-queued: {(_connector != null ? _connector.GetType().ToString() : "Null Connector")}");
-                    _connector.AssignOwner(_initializing);
-                    PacketManager.Enqueue(new GenericComponentInitializePacket(_connector, _queuedInitializations + 1, _initializing));
-                    return;
-                }
-                UniLog.Log($"Connector has reached initialization threshold and is being ignored: {(_connector != null ? _connector.GetType().ToString() : "Null Connector")}");
-                return;
-            }
-            if (_initializing.Slot.Connector == null)
+            if (_initializing.Slot.IsDisposed) return;
+            if (_connector.Owner == null) _connector.AssignOwner(_initializing);
+            if (_initializing.Slot?.Connector == null)
             {
                 if (_queuedInitializations < 20)
                 {
-                    UniLog.Log($"Component {_initializing.GetType()} has no slot connector, creating one and waiting...");
+                    UniLog.Log($"Component {_initializing.GetType()} on {_initializing.Slot?.Name} has no slot connector, waiting...");
                     var connector = new SlotConnector();
                     connector.AssignOwner(_initializing.Slot);
                     SlotPatches.set_Connector(_initializing.Slot, connector);
@@ -98,7 +81,12 @@ namespace Thundaga
                 UniLog.Log($"Connector has reached initialization threshold and is being ignored: {(_connector != null ? _connector.GetType().ToString() : "Null Connector")}");
                 return;
             }
-            */
+            if (_initializing.Slot.Parent == null && !_initializing.Slot.IsRootSlot)
+            {
+                var name = _initializing.Slot?.Name;
+                UniLog.Log($"Component {_initializing.GetType()} on {name} has no slot parent, waiting...");
+                PacketManager.Enqueue(new GenericComponentInitializePacket(_connector, _queuedInitializations + 1, _initializing));
+            }
             _connector.Initialize();
         }
         public GenericComponentInitializePacket(IConnector connector, int depth, ImplementableComponent<IConnector> owner = null)

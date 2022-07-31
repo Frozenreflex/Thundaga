@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using BaseX;
@@ -22,6 +23,19 @@ namespace Thundaga.Packets
         public SlotConnectorPacket(SlotConnector connector)
         {
             _connector = connector;
+            if (_connector.Owner == null)
+            {
+                UniLog.Log("Found orphaned connector, reconnecting...");
+                foreach (var component in Engine.Current.WorldManager.Worlds.ToList().SelectMany(world =>
+                             world.AllSlots.ToList().SelectMany(slot => slot.Components.ToList())))
+                {
+                    if (!(component is ImplementableComponent<IConnector> implementableComponent) ||
+                        implementableComponent.Connector != _connector) continue;
+                    UniLog.Log("Failed to reconnect orphaned connector");
+                    _connector.AssignOwner(implementableComponent);
+                    break;
+                }
+            }
             var owner = connector.Owner;
             var parent = owner.Parent;
             //_parentConnector = parent?.Connector;

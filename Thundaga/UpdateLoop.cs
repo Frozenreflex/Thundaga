@@ -128,10 +128,8 @@ namespace Thundaga
                 {
                     if (___engine != null)
                     {
-                        /*
-                        SystemInfoConnectorPatch.set_ExternalUpdateTime(___systemInfoConnector,
+                        SystemInfoConnectorPatch.ExternalUpdateTime.SetValue(___systemInfoConnector,
                             ____externalStopwatch.ElapsedMilliseconds * (1f / 1000f));
-                            */
                         if (!____framerateStopwatch.IsRunning)
                         {
                             ____framerateStopwatch.Restart();
@@ -142,24 +140,22 @@ namespace Thundaga
                             var elapsedMilliseconds = ____framerateStopwatch.ElapsedMilliseconds;
                             if (elapsedMilliseconds >= 500L)
                             {
-                                /*
                                 if (___systemInfoConnector != null)
-                                    SystemInfoConnectorPatch.set_FPS(___systemInfoConnector, ____framerateCounter /
+                                    SystemInfoConnectorPatch.FPS.SetValue(___systemInfoConnector, ____framerateCounter /
                                         (elapsedMilliseconds * (1f / 1000f)));
-                                        */
                                 ____framerateCounter = 0;
                                 ____framerateStopwatch.Restart();
                             }
                         }
 
-                        /*
-                        SystemInfoConnectorPatch.set_RenderTime(___systemInfoConnector,
-                            !XRStats.TryGetGPUTimeLastFrame(out var gpuTimeLastFrame) ? -1f
-                            : gpuTimeLastFrame * (1f / 1000f));
                         if (___systemInfoConnector != null)
-                            SystemInfoConnectorPatch.set_ImmediateFPS(___systemInfoConnector,
+                        {
+                            SystemInfoConnectorPatch.RenderTime.SetValue(___systemInfoConnector,
+                                !XRStats.TryGetGPUTimeLastFrame(out var gpuTimeLastFrame) ? -1f
+                                    : gpuTimeLastFrame * (1f / 1000f));
+                            SystemInfoConnectorPatch.ImmediateFPS.SetValue(___systemInfoConnector,
                                 1f / Time.unscaledDeltaTime);
-                                */
+                        }
                         ___engine.InputInterface.UpdateWindowResolution(new int2(Screen.width,
                             Screen.height));
                         //___engine.RunUpdateLoop(6.0);
@@ -197,11 +193,7 @@ namespace Thundaga
                             .Count > 0)
                             */
                             GL.IssuePluginEvent(_renderThreadPointer.Value, 0);
-                        /*
-                        var a = AssetIntegratorPatch.ProcessQueue(assetIntegrator,
-                            2, false);
-                            */
-                        AssetIntegratorPatch.ProcessQueueMethod.Invoke(assetIntegrator, new object[]
+                            AssetIntegratorPatch.ProcessQueueMethod.Invoke(assetIntegrator, new object[]
                         {
                             2, false
                         });
@@ -336,6 +328,14 @@ namespace Thundaga
     [HarmonyPatch(typeof(SystemInfoConnector))]
     public static class SystemInfoConnectorPatch
     {
+        public static PropertyInfo ExternalUpdateTime =
+            typeof(SystemInfoConnector).GetProperty("ExternalUpdateTime", AccessTools.all);
+        public static PropertyInfo RenderTime =
+            typeof(SystemInfoConnector).GetProperty("RenderTime", AccessTools.all);
+        public static PropertyInfo FPS =
+            typeof(SystemInfoConnector).GetProperty("FPS", AccessTools.all);
+        public static PropertyInfo ImmediateFPS =
+            typeof(SystemInfoConnector).GetProperty("ImmediateFPS", AccessTools.all);
         [HarmonyPatch("ExternalUpdateTime", MethodType.Setter)]
         [HarmonyReversePatch]
         public static void set_ExternalUpdateTime(SystemInfoConnector instance, float value) =>

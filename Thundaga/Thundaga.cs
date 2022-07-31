@@ -112,15 +112,20 @@ namespace Thundaga
     public static class PacketManager
     {
         public static List<IConnectorPacket> NeosPacketQueue = new List<IConnectorPacket>();
+        public static List<IConnectorPacket> NeosHighPriorityPacketQueue = new List<IConnectorPacket>();
         public static List<IConnectorPacket> IntermittentPacketQueue = new List<IConnectorPacket>();
         public static List<Action> AssetTaskQueue = new List<Action>();
+
         public static void Enqueue(IConnectorPacket packet) => NeosPacketQueue.Add(packet);
+        public static void EnqueueHigh(IConnectorPacket packet) => NeosHighPriorityPacketQueue.Add(packet);
         public static void FinishNeosQueue()
         {
             lock (IntermittentPacketQueue)
             {
+                IntermittentPacketQueue.AddRange(NeosHighPriorityPacketQueue);
                 IntermittentPacketQueue.AddRange(NeosPacketQueue);
                 NeosPacketQueue.Clear();
+                NeosHighPriorityPacketQueue.Clear();
             }
         }
         public static List<IConnectorPacket> GetQueuedPackets()

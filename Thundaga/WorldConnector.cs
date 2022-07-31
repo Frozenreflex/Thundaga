@@ -53,7 +53,7 @@ namespace Thundaga
         [HarmonyPrefix]
         public static bool InitializePatch(WorldConnector __instance, World owner)
         {
-            PacketManager.Enqueue(new WorldConnectorInitializePacket(__instance, owner));
+            PacketManager.EnqueueHigh(new WorldConnectorInitializePacket(__instance, owner));
             return false;
         }
         [HarmonyPatch("ChangeFocus")]
