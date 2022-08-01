@@ -51,6 +51,7 @@ namespace Thundaga
         private static int _lastDiagnosticReport = 1800;
         private static IntPtr? _renderThreadPointer;
         public static bool ShouldRefreshAllConnectors;
+        private static readonly FieldInfo LocalSlots = typeof(World).GetField("_localSlots", AccessTools.all);
 
         private static void RefreshAllConnectors()
         {
@@ -63,32 +64,45 @@ namespace Thundaga
             {
                 if (!(component is ImplementableComponent<IConnector> implementable) || implementable is ParticleSystem) continue;
                 count++;
-                try
-                {
-                    implementable.Connector.Destroy(false);
-                    //ImplementableComponentPatches.set_Connector(implementable, null);
-                    ImplementableComponentPatches.InitializeConnector(implementable);
-                    implementable.Connector.AssignOwner(implementable);
-                    var con = implementable.Connector;
-                    con.Initialize();
-                    if (con is MeshRendererConnector mesh)
-                    {
-                        MeshRendererConnectorPatch.set_meshWasChanged(mesh, true);
-                    }
-                    if (con is SkinnedMeshRendererConnector smesh)
-                    {
-                        SkinnedMeshRendererConnectorPatchB.set_meshWasChanged(smesh, true);
-                    }
-                    con.ApplyChanges();
-                }
-                catch (Exception e)
-                {
-                    UniLog.Log(e);
-                }
+                RefreshConnector(implementable);
             }
+            UniLog.Log(LocalSlots != null);
+            foreach (var component in Engine.Current.WorldManager.Worlds.ToList().SelectMany(world =>
+                         ((List<Slot>) LocalSlots.GetValue(world)).SelectMany(slot => slot.Components.ToList())))
+            {
+                if (!(component is ImplementableComponent<IConnector> implementable) || implementable is ParticleSystem) continue;
+                count++;
+                RefreshConnector(implementable);
+            }
+            
             UniLog.Log($"Refreshed {count} components");
             PacketManager.IntermittentPacketQueue.Clear();
             PacketManager.NeosPacketQueue.Clear();
+        }
+
+        private static void RefreshConnector(ImplementableComponent<IConnector> implementable)
+        {
+            try
+            {
+                implementable.Connector.Destroy(false);
+                ImplementableComponentPatches.InitializeConnector(implementable);
+                implementable.Connector.AssignOwner(implementable);
+                var con = implementable.Connector;
+                con.Initialize();
+                if (con is MeshRendererConnector mesh)
+                {
+                    MeshRendererConnectorPatch.set_meshWasChanged(mesh, true);
+                }
+                if (con is SkinnedMeshRendererConnector smesh)
+                {
+                    SkinnedMeshRendererConnectorPatchB.set_meshWasChanged(smesh, true);
+                }
+                con.ApplyChanges();
+            }
+            catch (Exception e)
+            {
+                UniLog.Log(e);
+            }
         }
 
         [HarmonyPatch("Update")]
