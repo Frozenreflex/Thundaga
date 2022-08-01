@@ -127,7 +127,16 @@ namespace Thundaga
                     }
             }
             codes.Reverse();
-            //get actual blendshape count to prevent errors
+            //replace buggy blendshape code
+            var index = codes.LastIndexOf(codes.Last(i => i.opcode == OpCodes.Call && i.operand.ToString().Contains("get_Owner")));
+            codes[index].operand = typeof(SkinnedMeshRendererConnectorPatchA).GetMethod("DoBlendShapes");
+            var index2 = codes.LastIndexOf(codes.Last(i => i.opcode == OpCodes.Call && i.operand.ToString().Contains("SendBoundsUpdated"))) - 1;
+            for (var i = index + 1; i < index2; i++)
+            {
+                codes[i].opcode = OpCodes.Nop;
+                codes[i].operand = null;
+            }
+            /*
             for (var i = 0; i < codes.Count; i++)
             {
                 if (codes[i].opcode != OpCodes.Ldloc_S ||
@@ -145,12 +154,34 @@ namespace Thundaga
                 };
                 codes.InsertRange(i, insertCodes);
                 */
+            /*
                 break;
             }
+            */
             return codes;
         }
         public static int GetBlendShapeCount(SkinnedMeshRendererConnector instance) =>
             instance.MeshRenderer.sharedMesh.blendShapeCount;
+
+        public static void DoBlendShapes(SkinnedMeshRendererConnector instance)
+        {
+            var renderer = instance.MeshRenderer;
+            var mesh = renderer.sharedMesh;
+            var count = mesh.blendShapeCount;
+            var weights = instance.Owner.BlendShapeWeights.ToList();
+            var weightsCount = weights.Count;
+            for (var i = 0; i < count; i++)
+            {
+                try
+                {
+                    renderer.SetBlendShapeWeight(i, weightsCount > i ? weights[i] : 0);
+                }
+                catch (Exception e)
+                {
+                    break;
+                }
+            }
+        }
     }
     [HarmonyPatch(typeof(MeshRendererConnectorBase<SkinnedMeshRenderer, UnityEngine.SkinnedMeshRenderer>))]
     public static class SkinnedMeshRendererConnectorPatchB
@@ -213,11 +244,6 @@ namespace Thundaga
             codes[index].opcode = OpCodes.Call;
             codes.Insert(index, new CodeInstruction(OpCodes.Ldarg_0));
             return codes;
-        }
-        public static UnityEngine.SkinnedMeshRenderer SetMeshRendererPatch(GameObject gameObject)
-        {
-            UniLog.Log("hello world skinned");
-            return gameObject.AddComponent<UnityEngine.SkinnedMeshRenderer>();
         }
     }
     [HarmonyPatch(typeof(MeshConnector))]
