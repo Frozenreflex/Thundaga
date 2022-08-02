@@ -75,11 +75,12 @@ namespace Thundaga
     [HarmonyPatch(typeof(World))]
     public class WorldPatch
     {
+        public static int AutoRefreshTick;
         [HarmonyPatch("UpdateUpdateTime")]
         [HarmonyPostfix]
         public static void UpdateUpdateTime(World __instance, double time)
         {
-            if (__instance.TotalUpdates == 600) FrooxEngineRunnerPatch.ShouldRefreshAllConnectors = true;
+            if (__instance.TotalUpdates == AutoRefreshTick) FrooxEngineRunnerPatch.ShouldRefreshAllConnectors = true;
         }
     }
 }

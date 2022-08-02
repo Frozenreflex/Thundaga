@@ -21,23 +21,28 @@ namespace Thundaga
         private static bool _first_trigger = false;
         
         [AutoRegisterConfigKey]
-        public readonly ModConfigurationKey<bool> Refresh = new ModConfigurationKey<bool>("refresh", "Refresh Connectors", () => false);
+        //refresh connectors
+        public readonly ModConfigurationKey<bool> Refresh = new ModConfigurationKey<bool>("refresh",
+            "Refresh Connectors (toggle to refresh)", () => false);
+        //when a world has updated this many ticks, refresh connectors automatically, if stuff fails to load increase this
+        [AutoRegisterConfigKey]
+        public readonly ModConfigurationKey<int> AutoRefreshTick = new ModConfigurationKey<int>("refreshtick",
+            "Auto-Refresh Tick", () => 300);
 
         private void OnConfigurationChanged(ConfigurationChangedEvent @event)
         {
             var config = GetConfiguration();
-            if (@event.Key == Refresh && config.GetValue(Refresh))
-            {
-                Msg("Refreshing connectors...");
+            if (@event.Key == Refresh)
                 FrooxEngineRunnerPatch.ShouldRefreshAllConnectors = true;
-            }
+            else if (@event.Key == AutoRefreshTick) WorldPatch.AutoRefreshTick = config.GetValue(AutoRefreshTick);
         }
 
         public override void OnEngineInit()
         {
             ModConfiguration.OnAnyConfigurationChanged += OnConfigurationChanged;
             var harmony = new Harmony("Thundaga");
-
+            var config = GetConfiguration();
+            WorldPatch.AutoRefreshTick = config.GetValue(AutoRefreshTick);
             var patches = typeof(ImplementableComponentPatches);
             var a = typeof(ImplementableComponent<>).MakeGenericType(typeof(IConnector));
             var update = a.GetMethod("InternalUpdateConnector", AccessTools.all);
