@@ -420,24 +420,4 @@ namespace Thundaga
         public static void set_ImmediateFPS(SystemInfoConnector instance, float value) =>
             throw new NotImplementedException();
     }
-    [HarmonyPatch(typeof(UnityAssetIntegrator))]
-    public static class AssetIntegratorPatch
-    {
-        public static MethodInfo ProcessQueueMethod;
-        public static FieldInfo RenderThreadPointer;
-        public static FieldInfo RenderThreadQueue;
-        static AssetIntegratorPatch()
-        {
-            ProcessQueueMethod = typeof(UnityAssetIntegrator).GetMethods(AccessTools.all)
-                .First(i => i.Name.Contains("ProcessQueue") && i.GetParameters().Length == 2);
-            RenderThreadPointer = typeof(UnityAssetIntegrator).GetField("renderThreadPointer", AccessTools.all);
-            RenderThreadQueue = typeof(UnityAssetIntegrator).GetField("renderThreadQueue", AccessTools.all);
-        }
-        /*
-        [HarmonyPatch("ProcessQueue", typeof(double), typeof(bool))]
-        [HarmonyReversePatch]
-        public static int ProcessQueue(UnityAssetIntegrator instance, double maxMilliseconds, bool renderThread) =>
-            throw new NotImplementedException("utterly and completely retarded");
-            */
-    }
 }

@@ -300,6 +300,73 @@ namespace Thundaga
             IEnumerable<CodeInstruction> instructions) =>
             instructions.RemoveDestroyImmediate();
     }
+    [HarmonyPatch(typeof(HeadOutput))]
+    public static class HeadOutputPatch
+    {
+        public static bool JitterFix = true;
+        public static float3 GlobalPosition { get; set; }
+        public static float3 ViewPosition { get; set; }
+        public static floatQ GlobalRotation { get; set; }
+        public static floatQ ViewRotation { get; set; }
+
+        private static MethodInfo _globalPosition =
+            typeof(HeadOutputPatch).GetProperty("GlobalPosition").GetGetMethod();
+        private static MethodInfo _viewPosition = 
+            typeof(HeadOutputPatch).GetProperty("ViewPosition").GetGetMethod();
+        private static MethodInfo _globalRotation =
+            typeof(HeadOutputPatch).GetProperty("GlobalRotation").GetGetMethod();
+        private static MethodInfo _viewRotation = 
+            typeof(HeadOutputPatch).GetProperty("ViewRotation").GetGetMethod();
+        [HarmonyPatch("UpdatePositioning")]
+        [HarmonyTranspiler]
+        public static List<CodeInstruction> UpdatePositioningTranspiler(this IEnumerable<CodeInstruction> instructions)
+        {
+            var codes = new List<CodeInstruction>(instructions);
+            codes[0].opcode = OpCodes.Nop;
+            codes[1].operand = _globalPosition;
+            codes[3].opcode = OpCodes.Nop;
+            codes[4].operand = _globalRotation;
+            var index = codes.IndexOf(codes.First(i =>
+                i.opcode == OpCodes.Callvirt && i.operand.ToString().Contains("get_LocalUserViewPosition")));
+            codes[index - 1].opcode = OpCodes.Nop;
+            codes[index].operand = _viewPosition;
+            codes[index + 3].opcode = OpCodes.Nop;
+            codes[index + 4].operand = _viewRotation;
+            return codes;
+        }
+    }
+    [HarmonyPatch(typeof(UnityAssetIntegrator))]
+    public static class AssetIntegratorPatch
+    {
+        public static MethodInfo ProcessQueueMethod;
+        public static FieldInfo RenderThreadPointer;
+        public static FieldInfo RenderThreadQueue;
+        static AssetIntegratorPatch()
+        {
+            ProcessQueueMethod = typeof(UnityAssetIntegrator).GetMethods(AccessTools.all)
+                .First(i => i.Name.Contains("ProcessQueue") && i.GetParameters().Length == 2);
+            RenderThreadPointer = typeof(UnityAssetIntegrator).GetField("renderThreadPointer", AccessTools.all);
+            RenderThreadQueue = typeof(UnityAssetIntegrator).GetField("renderThreadQueue", AccessTools.all);
+        }
+        /*
+        [HarmonyPatch("ProcessQueue", typeof(double), typeof(bool))]
+        [HarmonyReversePatch]
+        public static int ProcessQueue(UnityAssetIntegrator instance, double maxMilliseconds, bool renderThread) =>
+            throw new NotImplementedException("utterly and completely retarded");
+            */
+    }
+
+    public class HeadsetPositionPacket : IConnectorPacket
+    {
+        public void ApplyChange()
+        {
+            var focusedWorld = Engine.Current.WorldManager.FocusedWorld;
+            HeadOutputPatch.GlobalPosition = focusedWorld.LocalUserGlobalPosition;
+            HeadOutputPatch.ViewPosition = focusedWorld.LocalUserViewPosition;
+            HeadOutputPatch.GlobalRotation = focusedWorld.LocalUserGlobalRotation;
+            HeadOutputPatch.ViewRotation = focusedWorld.LocalUserViewRotation;
+        }
+    }
     public static class DestroyImmediateRemover
     {
         public static IEnumerable<CodeInstruction> OnReadyTranspiler(

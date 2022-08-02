@@ -172,6 +172,7 @@ namespace Thundaga
             {
                 IntermittentPacketQueue.AddRange(NeosHighPriorityPacketQueue);
                 IntermittentPacketQueue.AddRange(NeosPacketQueue);
+                IntermittentPacketQueue.Add(new HeadsetPositionPacket());
                 NeosPacketQueue.Clear();
                 NeosHighPriorityPacketQueue.Clear();
             }
