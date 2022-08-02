@@ -20,13 +20,14 @@ namespace Thundaga
 {
     public class UpdateLoop
     {
-        public static bool shutdown;
+        public static bool Shutdown;
+        public static float TickRate = 60;
 
         public static void Update()
         {
             var dateTime = DateTime.UtcNow;
-            const float tickRate = 1f / 60f;
-            while (!shutdown)
+            var tickRate = 1f / TickRate;
+            while (!Shutdown)
             {
                 Engine.Current.RunUpdateLoop();
                 PacketManager.FinishNeosQueue();
@@ -53,6 +54,8 @@ namespace Thundaga
         public static bool ShouldRefreshAllConnectors;
         private static readonly FieldInfo LocalSlots = typeof(World).GetField("_localSlots", AccessTools.all);
         public static ThreadPriority NeosThreadPriority = ThreadPriority.Normal;
+        public static int AutoLocalRefreshTick = 1800;
+        private static int _autoLocalRefreshTicks;
 
         private static void RefreshAllConnectors()
         {
@@ -62,22 +65,40 @@ namespace Thundaga
             PacketManager.IntermittentPacketQueue.Clear();
             PacketManager.NeosPacketQueue.Clear();
         }
+        private static void RefreshAllLocalConnectors() =>
+            Engine.Current.WorldManager.Worlds.Sum(RefreshLocalConnectorsForWorld);
 
-        private static int RefreshConnectorsForWorld(World world)
+        private static int RefreshConnectorsForWorld(World world) => RefreshConnectorsForWorld(world, false);
+        private static int RefreshLocalConnectorsForWorld(World world) => RefreshConnectorsForWorld(world, true);
+        private static int RefreshConnectorsForWorld(World world, bool localOnly)
         {
             var count = 0;
-            foreach (var component in world.AllSlots.ToList().SelectMany(slot => slot.Components.ToList()))
+            if (!localOnly)
             {
-                if (!(component is ImplementableComponent<IConnector> implementable) || implementable is ParticleSystem) continue;
-                RefreshConnector(implementable);
-                count++;
+                var slots = world.AllSlots.ToList();
+                foreach (var slot in slots)
+                {
+                    var components = slot.Components.ToList();
+                    foreach (var component in components)
+                    {
+                        if (!(component is ImplementableComponent<IConnector> implementable) || implementable is ParticleSystem) continue;
+                        RefreshConnector(implementable);
+                        count++;
+                    }
+                }
             }
-            foreach (var component in ((List<Slot>) LocalSlots.GetValue(world)).SelectMany(slot => slot.Components.ToList()))
+            var locals = ((List<Slot>) LocalSlots.GetValue(world)).ToList();
+            foreach (var slot in locals)
             {
-                if (!(component is ImplementableComponent<IConnector> implementable) || implementable is ParticleSystem) continue;
-                RefreshConnector(implementable);
-                count++;
+                var components = slot.Components.ToList();
+                foreach (var component in components)
+                {
+                    if (!(component is ImplementableComponent<IConnector> implementable) || implementable is ParticleSystem) continue;
+                    RefreshConnector(implementable);
+                    count++;
+                }
             }
+            
             return count;
         }
 
@@ -118,7 +139,7 @@ namespace Thundaga
         {
             if (!___engineInitialized)
                 return false;
-            UpdateLoop.shutdown = ___shutdownEnvironment;
+            UpdateLoop.Shutdown = ___shutdownEnvironment;
             if (___shutdownEnvironment)
             {
                 UniLog.Log("Shutting down environment");
@@ -235,7 +256,18 @@ namespace Thundaga
                             ShouldRefreshAllConnectors = false;
                             RefreshAllConnectors();
                         }
-                        
+
+                        //prevent people from crashing themselves by setting it to a really low number
+                        if (_autoLocalRefreshTicks > 300)
+                        {
+                            _autoLocalRefreshTicks++;
+                            if (_autoLocalRefreshTicks > AutoLocalRefreshTick)
+                            {
+                                _autoLocalRefreshTicks = 0;
+                                RefreshAllLocalConnectors();
+                            }
+                        }
+
                         var focusedWorld = ___engine.WorldManager.FocusedWorld;
                         if (focusedWorld != null)
                         {

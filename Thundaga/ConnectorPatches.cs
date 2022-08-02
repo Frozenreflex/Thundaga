@@ -165,8 +165,11 @@ namespace Thundaga
 
         public static void DoBlendShapes(SkinnedMeshRendererConnector instance)
         {
+            if (instance == null) return;
             var renderer = instance.MeshRenderer;
+            if (renderer == null) return;
             var mesh = renderer.sharedMesh;
+            if (mesh == null) return;
             var count = mesh.blendShapeCount;
             var weights = instance.Owner.BlendShapeWeights.ToList();
             var weightsCount = weights.Count;

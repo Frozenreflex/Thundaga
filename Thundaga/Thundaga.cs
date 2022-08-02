@@ -27,11 +27,19 @@ namespace Thundaga
         //when a world has updated this many ticks, refresh connectors automatically, if stuff fails to load increase this
         [AutoRegisterConfigKey]
         public readonly ModConfigurationKey<int> AutoRefreshTick = new ModConfigurationKey<int>("refreshtick",
-            "Auto-Refresh Tick", () => 300);
+            "Auto-Refresh World Tick (raise if stuff doesn't load)", () => 300);
+        //after this many update cycles, force auto refresh all "local" slots
+        [AutoRegisterConfigKey]
+        public readonly ModConfigurationKey<int> AutoRefreshLocalTick = new ModConfigurationKey<int>("refreshlocaltick",
+            "Auto-Refresh UIX Ticks (lower if UIX breaks often, raise if errors, -1 to disable)", () => 1800);
         //thread priority the neos thread gets spun up with
         [AutoRegisterConfigKey]
         public readonly ModConfigurationKey<ThreadPriority> NeosThreadPriority = new ModConfigurationKey<ThreadPriority>("threadpriority",
             "Neos Thread Priority (requires restart)", () => ThreadPriority.Normal);
+        //target update rate for neos thread
+        [AutoRegisterConfigKey]
+        public readonly ModConfigurationKey<float> UpdateRate = new ModConfigurationKey<float>("updaterate",
+            "Neos Thread Target Update Rate (similar to framerate, requires restart)", () => 60);
 
         private void OnConfigurationChanged(ConfigurationChangedEvent @event)
         {
@@ -39,6 +47,8 @@ namespace Thundaga
             if (@event.Key == Refresh)
                 FrooxEngineRunnerPatch.ShouldRefreshAllConnectors = true;
             else if (@event.Key == AutoRefreshTick) WorldPatch.AutoRefreshTick = config.GetValue(AutoRefreshTick);
+            else if (@event.Key == AutoRefreshLocalTick)
+                FrooxEngineRunnerPatch.AutoLocalRefreshTick = config.GetValue(AutoRefreshLocalTick);
         }
 
         public override void OnEngineInit()
@@ -47,7 +57,9 @@ namespace Thundaga
             var harmony = new Harmony("Thundaga");
             var config = GetConfiguration();
             WorldPatch.AutoRefreshTick = config.GetValue(AutoRefreshTick);
+            UpdateLoop.TickRate = config.GetValue(UpdateRate);
             FrooxEngineRunnerPatch.NeosThreadPriority = config.GetValue(NeosThreadPriority);
+            FrooxEngineRunnerPatch.AutoLocalRefreshTick = config.GetValue(AutoRefreshLocalTick);
             var patches = typeof(ImplementableComponentPatches);
             var a = typeof(ImplementableComponent<>).MakeGenericType(typeof(IConnector));
             var update = a.GetMethod("InternalUpdateConnector", AccessTools.all);
@@ -194,7 +206,7 @@ namespace Thundaga
         public static bool InternalRunStartup(ImplementableComponent<IConnector> __instance)
         {
             ComponentBasePatch.InternalRunStartup(__instance);
-            PacketManager.Enqueue(new GenericComponentInitializePacket(__instance.Connector, 0, __instance));
+            PacketManager.Enqueue(new GenericComponentInitializePacket(__instance.Connector, __instance));
             return false;
         }
         public static bool DisposeConnector(ImplementableComponent<IConnector> __instance)

@@ -61,38 +61,16 @@ namespace Thundaga
     }
     public class GenericComponentInitializePacket : ConnectorPacket<IConnector>
     {
-        private readonly int _queuedInitializations;
         private readonly ImplementableComponent<IConnector> _initializing;
         public override void ApplyChange()
         {
-            if (_initializing.Slot.IsDisposed) return;
-            if (_connector.Owner == null) _connector.AssignOwner(_initializing);
-            if (_initializing.Slot?.Connector == null)
-            {
-                if (_queuedInitializations < 20)
-                {
-                    UniLog.Log($"Component {_initializing.GetType()} on {_initializing.Slot?.Name} has no slot connector, waiting...");
-                    var connector = new SlotConnector();
-                    connector.AssignOwner(_initializing.Slot);
-                    SlotPatches.set_Connector(_initializing.Slot, connector);
-                    PacketManager.Enqueue(new GenericComponentInitializePacket(_connector, _queuedInitializations + 1, _initializing));
-                    return;
-                }
-                UniLog.Log($"Connector has reached initialization threshold and is being ignored: {(_connector != null ? _connector.GetType().ToString() : "Null Connector")}");
-                return;
-            }
-            if (_initializing.Slot.Parent.Connector == null && !_initializing.Slot.IsRootSlot)
-            {
-                var name = _initializing.Slot?.Name;
-                UniLog.Log($"Component {_initializing.GetType()} on {name} has no slot parent, waiting...");
-                PacketManager.Enqueue(new GenericComponentInitializePacket(_connector, _queuedInitializations + 1, _initializing));
-            }
+            //this connector has likely been replaced by a refresh, ignore
+            if (_connector == null || _initializing.Slot.IsDisposed || _initializing.Connector != _connector) return;
             _connector.Initialize();
         }
-        public GenericComponentInitializePacket(IConnector connector, int depth, ImplementableComponent<IConnector> owner = null)
+        public GenericComponentInitializePacket(IConnector connector, ImplementableComponent<IConnector> owner = null)
         {
             _connector = connector;
-            _queuedInitializations = depth;
             _initializing = owner;
         }
     }
