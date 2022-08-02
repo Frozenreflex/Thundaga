@@ -72,11 +72,34 @@ namespace Thundaga
         private static int RefreshLocalConnectorsForWorld(World world) => RefreshConnectorsForWorld(world, true);
         private static int RefreshConnectorsForWorld(World world, bool localOnly)
         {
+            //since the world state is constantly shifting we have to encapsulate them with try catch to prevent crashes
             var count = 0;
-            if (!localOnly)
+            try
             {
-                var slots = world.AllSlots.ToList();
-                foreach (var slot in slots)
+                if (!localOnly)
+                {
+                    var slots = world.AllSlots.ToList();
+                    foreach (var slot in slots)
+                    {
+                        if (slot == null) continue;
+                        var components = slot.Components.ToList();
+                        foreach (var component in components)
+                        {
+                            if (!(component is ImplementableComponent<IConnector> implementable) || implementable is ParticleSystem) continue;
+                            RefreshConnector(implementable);
+                            count++;
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                UniLog.Log(e);
+            }
+            try
+            {
+                var locals = ((List<Slot>) LocalSlots.GetValue(world)).ToList();
+                foreach (var slot in locals)
                 {
                     var components = slot.Components.ToList();
                     foreach (var component in components)
@@ -87,18 +110,10 @@ namespace Thundaga
                     }
                 }
             }
-            var locals = ((List<Slot>) LocalSlots.GetValue(world)).ToList();
-            foreach (var slot in locals)
+            catch (Exception e)
             {
-                var components = slot.Components.ToList();
-                foreach (var component in components)
-                {
-                    if (!(component is ImplementableComponent<IConnector> implementable) || implementable is ParticleSystem) continue;
-                    RefreshConnector(implementable);
-                    count++;
-                }
+                UniLog.Log(e);
             }
-            
             return count;
         }
 
