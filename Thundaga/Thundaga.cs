@@ -60,6 +60,22 @@ namespace Thundaga
                 new HarmonyMethod(
                     typeof(ExtraPatches).GetMethod(nameof(ExtraPatches.ProcessQueue))));
 
+            string logoClass = null;
+            switch (Engine.Current.Platform)
+            {
+                case Platform.Windows:
+                    //viseme analyzer?
+                    logoClass = "<>c__DisplayClass39_0";
+                    break;
+                case Platform.Linux:
+                    logoClass = "<>c__DisplayClass38_0";
+                    break;
+                case Platform.Android:
+                    UniLog.Log("Android not yet supported, may crash on startup!");
+                    //TODO: figure out what the class for this platform is
+                    break;
+            }
+            
             var destroy1 = AccessTools.AllTypes()
                 .First(i => i.Name.Contains("<>c__DisplayClass14_0") &&
                             i.DeclaringType == typeof(RenderTextureConnector))
@@ -72,40 +88,36 @@ namespace Thundaga
                 .First(i => i.Name.Contains("<>c__DisplayClass49_1") &&
                             i.DeclaringType == typeof(TextureConnector))
                 .GetMethod("<SetTextureFormatOpenGLNative>b__2", AccessTools.all);
-            //the startup logo
-            var destroy4 = AccessTools.AllTypes()
-                .First(i => i.Name.Contains("<>c__DisplayClass38_0") &&
-                            i.DeclaringType == typeof(FrooxEngineRunner))
-                .GetMethod("<Start>b__6", AccessTools.all);
-            
             var transpiler = new HarmonyMethod(typeof(DestroyImmediateRemover).GetMethod(nameof(DestroyImmediateRemover.Transpiler)));
             var transpilerTwice = new HarmonyMethod(typeof(DestroyImmediateRemover).GetMethod(nameof(DestroyImmediateRemover.TranspilerTwice)));
-            var transpilerLogo = new HarmonyMethod(typeof(DestroyImmediateRemover).GetMethod(nameof(DestroyImmediateRemover.OnReadyTranspiler)));
+            
             
             harmony.Patch(destroy1, transpiler: transpiler);
             harmony.Patch(destroy2, transpiler: transpilerTwice);
             harmony.Patch(destroy3, transpiler: transpilerTwice);
-            harmony.Patch(destroy4, transpiler: transpilerLogo);
+            
+            if (logoClass != null)
+            {
+                //the startup logo
+                var destroy4 = AccessTools.AllTypes()
+                    .First(i => i.Name.Contains(logoClass) &&
+                                i.DeclaringType == typeof(FrooxEngineRunner))
+                    .GetMethod("<Start>b__6", AccessTools.all);
+                var transpilerLogo = new HarmonyMethod(typeof(DestroyImmediateRemover).GetMethod(nameof(DestroyImmediateRemover.OnReadyTranspiler)));
+                harmony.Patch(destroy4, transpiler: transpilerLogo);
+                /*
+	internal void <Start>b__6()
+	{
+		Screen.sleepTimeout = -2;
+		UnityEngine.Object.DestroyImmediate(primaryOutput.InitializationInfo);
+		UnityEngine.Object.DestroyImmediate(<>4__this.InitMaterial.mainTexture, allowDestroyingAssets: true);
+		UnityEngine.Object.DestroyImmediate(<>4__this.InitMaterial, allowDestroyingAssets: true);
+	}
+                */
+            }
             
             harmony.PatchAll();
             Msg("Patched methods");
-            //do this if we need patches for platform specific connectors
-            /*
-            switch (Engine.Current.Platform)
-            {
-                case Platform.Windows:
-                    //run windows specific patches
-                    //viseme analyzer
-                    //not sure if viseme analyzer works with the default generic packet
-                    break;
-                case Platform.Linux:
-                    //run linux specific patches
-                    break;
-                case Platform.Android:
-                    //run android specific patches
-                    break;
-            }
-            */
         }
     }
     public interface IConnectorPacket
