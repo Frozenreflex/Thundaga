@@ -76,7 +76,7 @@ namespace Thundaga
                     logoClass = "<>c__DisplayClass38_0";
                     break;
                 case Platform.Android:
-                    UniLog.Log("Android not yet supported, may crash on startup!");
+                    Msg("Android not yet supported, may crash on startup!");
                     //TODO: figure out what the class for this platform is
                     break;
             }
