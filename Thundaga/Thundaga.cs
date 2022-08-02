@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Reflection.Emit;
+using System.Threading;
 using BaseX;
 using HarmonyLib;
 using NeosModLoader;
@@ -28,6 +28,10 @@ namespace Thundaga
         [AutoRegisterConfigKey]
         public readonly ModConfigurationKey<int> AutoRefreshTick = new ModConfigurationKey<int>("refreshtick",
             "Auto-Refresh Tick", () => 300);
+        //thread priority the neos thread gets spun up with
+        [AutoRegisterConfigKey]
+        public readonly ModConfigurationKey<ThreadPriority> NeosThreadPriority = new ModConfigurationKey<ThreadPriority>("threadpriority",
+            "Neos Thread Priority (requires restart)", () => ThreadPriority.Normal);
 
         private void OnConfigurationChanged(ConfigurationChangedEvent @event)
         {
@@ -43,6 +47,7 @@ namespace Thundaga
             var harmony = new Harmony("Thundaga");
             var config = GetConfiguration();
             WorldPatch.AutoRefreshTick = config.GetValue(AutoRefreshTick);
+            FrooxEngineRunnerPatch.NeosThreadPriority = config.GetValue(NeosThreadPriority);
             var patches = typeof(ImplementableComponentPatches);
             var a = typeof(ImplementableComponent<>).MakeGenericType(typeof(IConnector));
             var update = a.GetMethod("InternalUpdateConnector", AccessTools.all);

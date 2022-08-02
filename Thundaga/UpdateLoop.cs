@@ -52,7 +52,7 @@ namespace Thundaga
         private static IntPtr? _renderThreadPointer;
         public static bool ShouldRefreshAllConnectors;
         private static readonly FieldInfo LocalSlots = typeof(World).GetField("_localSlots", AccessTools.all);
-        private static DateTime _lastAutomaticRefresh = DateTime.UtcNow;
+        public static ThreadPriority NeosThreadPriority = ThreadPriority.Normal;
 
         private static void RefreshAllConnectors()
         {
@@ -139,7 +139,7 @@ namespace Thundaga
                 var updateLoop = new Thread(UpdateLoop.Update)
                 {
                     Name = "Update Loop",
-                    Priority = ThreadPriority.Normal,
+                    Priority = NeosThreadPriority,
                     IsBackground = false
                 };
                 updateLoop.Start();
