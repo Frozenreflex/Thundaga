@@ -52,32 +52,33 @@ namespace Thundaga
         private static IntPtr? _renderThreadPointer;
         public static bool ShouldRefreshAllConnectors;
         private static readonly FieldInfo LocalSlots = typeof(World).GetField("_localSlots", AccessTools.all);
+        private static DateTime _lastAutomaticRefresh = DateTime.UtcNow;
 
         private static void RefreshAllConnectors()
         {
-            var count = 0;
-            foreach (var component in 
-                     from world in Engine.Current.WorldManager.Worlds.ToList()
-                     from slot in world.AllSlots.ToList()
-                     from component in slot.Components.ToList()
-                     select component)
-            {
-                if (!(component is ImplementableComponent<IConnector> implementable) || implementable is ParticleSystem) continue;
-                count++;
-                RefreshConnector(implementable);
-            }
-            UniLog.Log(LocalSlots != null);
-            foreach (var component in Engine.Current.WorldManager.Worlds.ToList().SelectMany(world =>
-                         ((List<Slot>) LocalSlots.GetValue(world)).SelectMany(slot => slot.Components.ToList())))
-            {
-                if (!(component is ImplementableComponent<IConnector> implementable) || implementable is ParticleSystem) continue;
-                count++;
-                RefreshConnector(implementable);
-            }
-            
+            var count = Engine.Current.WorldManager.Worlds.Sum(RefreshConnectorsForWorld);
             UniLog.Log($"Refreshed {count} components");
+            //prevent updating removed connectors
             PacketManager.IntermittentPacketQueue.Clear();
             PacketManager.NeosPacketQueue.Clear();
+        }
+
+        private static int RefreshConnectorsForWorld(World world)
+        {
+            var count = 0;
+            foreach (var component in world.AllSlots.ToList().SelectMany(slot => slot.Components.ToList()))
+            {
+                if (!(component is ImplementableComponent<IConnector> implementable) || implementable is ParticleSystem) continue;
+                RefreshConnector(implementable);
+                count++;
+            }
+            foreach (var component in ((List<Slot>) LocalSlots.GetValue(world)).SelectMany(slot => slot.Components.ToList()))
+            {
+                if (!(component is ImplementableComponent<IConnector> implementable) || implementable is ParticleSystem) continue;
+                RefreshConnector(implementable);
+                count++;
+            }
+            return count;
         }
 
         private static void RefreshConnector(ImplementableComponent<IConnector> implementable)
@@ -226,18 +227,15 @@ namespace Thundaga
                                 .GetValue(assetIntegrator))
                             .Count > 0)
                             */
-                            GL.IssuePluginEvent(_renderThreadPointer.Value, 0);
-                            AssetIntegratorPatch.ProcessQueueMethod.Invoke(assetIntegrator, new object[]
-                        {
-                            2, false
-                        });
-                        
+                        GL.IssuePluginEvent(_renderThreadPointer.Value, 0);
+                        AssetIntegratorPatch.ProcessQueueMethod.Invoke(assetIntegrator, new object[] {2, false});
+
                         if (ShouldRefreshAllConnectors)
                         {
                             ShouldRefreshAllConnectors = false;
                             RefreshAllConnectors();
                         }
-
+                        
                         var focusedWorld = ___engine.WorldManager.FocusedWorld;
                         if (focusedWorld != null)
                         {

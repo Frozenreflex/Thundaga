@@ -71,4 +71,15 @@ namespace Thundaga
             return false;
         }
     }
+
+    [HarmonyPatch(typeof(World))]
+    public class WorldPatch
+    {
+        [HarmonyPatch("UpdateUpdateTime")]
+        [HarmonyPostfix]
+        public static void UpdateUpdateTime(World __instance, double time)
+        {
+            if (__instance.TotalUpdates == 600) FrooxEngineRunnerPatch.ShouldRefreshAllConnectors = true;
+        }
+    }
 }
