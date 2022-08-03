@@ -38,7 +38,6 @@ namespace Thundaga
             throw new NotImplementedException();
         [HarmonyPatch("ApplyChanges")]
         [HarmonyTranspiler]
-        [HarmonyDebug]
         public static IEnumerable<CodeInstruction> ApplyChangesTranspiler(
             IEnumerable<CodeInstruction> instructions)
         {
