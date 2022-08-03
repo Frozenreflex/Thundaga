@@ -277,7 +277,7 @@ namespace Thundaga
                         }
 
                         //prevent people from crashing themselves by setting it to a really low number
-                        if (_autoLocalRefreshTicks > 300)
+                        if (AutoLocalRefreshTick > 300)
                         {
                             _autoLocalRefreshTicks++;
                             if (_autoLocalRefreshTicks > AutoLocalRefreshTick)
