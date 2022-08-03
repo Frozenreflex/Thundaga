@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using FrooxEngine;
 using HarmonyLib;
 using UnityNeos;
@@ -39,6 +40,7 @@ namespace Thundaga
     [HarmonyPatch(typeof(WorldConnector))]
     public class WorldConnectorPatch
     {
+        public static FieldInfo Focus = typeof(World).GetField("_focus", AccessTools.all);
         [HarmonyPatch("Initialize")]
         [HarmonyReversePatch]
         public static void Initialize(WorldConnector instance, World owner) => throw new NotImplementedException();
