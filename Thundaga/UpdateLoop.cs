@@ -74,7 +74,8 @@ namespace Thundaga
         {
             //refresh world focus to fix overlapping worlds
             var focus = (World.WorldFocus)WorldConnectorPatch.Focus.GetValue(world);
-            WorldConnectorPatch.ChangeFocus((WorldConnector)world.Connector, focus);
+            if (focus == World.WorldFocus.Focused || focus == World.WorldFocus.Background)
+                WorldConnectorPatch.ChangeFocus((WorldConnector) world.Connector, focus);
             //since the world state is constantly shifting we have to encapsulate them with try catch to prevent crashes
             var count = 0;
             try
