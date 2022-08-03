@@ -48,6 +48,7 @@ namespace Thundaga
     [HarmonyPatch(typeof(FrooxEngineRunner))]
     public static class FrooxEngineRunnerPatch
     {
+        public static List<IConnector> Connectors = new List<IConnector>();
         private static bool _startedUpdating;
         private static int _lastDiagnosticReport = 1800;
         private static IntPtr? _renderThreadPointer;
@@ -59,6 +60,7 @@ namespace Thundaga
 
         private static void RefreshAllConnectors()
         {
+            CheckForNullConnectors();
             var count = Engine.Current.WorldManager.Worlds.Sum(RefreshConnectorsForWorld);
             UniLog.Log($"Refreshed {count} components");
             //prevent updating removed connectors
@@ -119,6 +121,26 @@ namespace Thundaga
                 UniLog.Log(e);
             }
             return count;
+        }
+
+        private static void CheckForNullConnectors()
+        {
+            var toRemove = new List<IConnector>();
+            foreach (var connector in Connectors)
+            {
+                if (connector.Owner != null && !connector.Owner.IsDestroyed && !connector.Owner.IsRemoved) continue;
+                try
+                {
+                    connector.Destroy(false);
+                    connector.RemoveOwner();
+                    toRemove.Add(connector);
+                }
+                catch (Exception e)
+                {
+                    UniLog.Log(e);
+                }
+            }
+            foreach (var remove in toRemove) Connectors.Remove(remove);
         }
 
         private static void RefreshConnector(ImplementableComponent<IConnector> implementable)

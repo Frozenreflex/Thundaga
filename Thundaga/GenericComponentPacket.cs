@@ -50,6 +50,7 @@ namespace Thundaga
         public override void ApplyChange()
         {
             if (_connector == null) return;
+            FrooxEngineRunnerPatch.Connectors.Remove(_connector);
             _connector.Destroy(_destroyingWorld);
             _connector.RemoveOwner();
         }
@@ -66,6 +67,7 @@ namespace Thundaga
         {
             //this connector has likely been replaced by a refresh, ignore
             if (_connector == null || _initializing.Slot.IsDisposed || _initializing.Connector != _connector) return;
+            if (!FrooxEngineRunnerPatch.Connectors.Contains(_connector)) FrooxEngineRunnerPatch.Connectors.Add(_connector);
             _connector.Initialize();
         }
         public GenericComponentInitializePacket(IConnector connector, ImplementableComponent<IConnector> owner = null)
