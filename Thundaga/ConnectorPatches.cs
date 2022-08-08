@@ -384,7 +384,6 @@ namespace Thundaga
                 codes[i + 2].operand = null;
                 break;
             }
-            UniLog.Log(codes.ElementsToString());
             return codes;
         }
     }
