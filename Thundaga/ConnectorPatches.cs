@@ -354,16 +354,38 @@ namespace Thundaga
             throw new NotImplementedException("utterly and completely retarded");
             */
     }
-
-    public class HeadsetPositionPacket : IConnectorPacket
+    [HarmonyPatch(typeof(MouseDriver))]
+    public static class MouseDriverPatch
     {
-        public void ApplyChange()
+        public static float2 NewDirectDelta = float2.Zero;
+        public static float2 GetDelta()
         {
-            var focusedWorld = Engine.Current.WorldManager.FocusedWorld;
-            HeadOutputPatch.GlobalPosition = focusedWorld.LocalUserGlobalPosition;
-            HeadOutputPatch.ViewPosition = focusedWorld.LocalUserViewPosition;
-            HeadOutputPatch.GlobalRotation = focusedWorld.LocalUserGlobalRotation;
-            HeadOutputPatch.ViewRotation = focusedWorld.LocalUserViewRotation;
+            var delta = NewDirectDelta;
+            NewDirectDelta = float2.Zero;
+            return delta;
+        }
+
+        [HarmonyPatch("UpdateMouse")]
+        [HarmonyTranspiler]
+        public static List<CodeInstruction> UpdateMouseTranspiler(IEnumerable<CodeInstruction> instructions)
+        {
+            var codes = new List<CodeInstruction>(instructions);
+            var method = typeof(MouseDriverPatch).GetMethod("GetDelta", AccessTools.all);
+            for (var i = 0; i < codes.Count; i++)
+            {
+                var code = codes[i];
+                if (code.opcode != OpCodes.Callvirt || !code.operand.ToString().Contains("get_delta")) continue;
+                codes[i - 1].opcode = OpCodes.Nop;
+                codes[i].opcode = OpCodes.Call;
+                codes[i].operand = method;
+                codes[i + 1].opcode = OpCodes.Nop;
+                codes[i + 1].operand = null;
+                codes[i + 2].opcode = OpCodes.Nop;
+                codes[i + 2].operand = null;
+                break;
+            }
+            UniLog.Log(codes.ElementsToString());
+            return codes;
         }
     }
     public static class DestroyImmediateRemover

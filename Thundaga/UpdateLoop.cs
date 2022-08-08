@@ -77,7 +77,10 @@ namespace Thundaga
             //refresh world focus to fix overlapping worlds
             var focus = (World.WorldFocus)WorldConnectorPatch.Focus.GetValue(world);
             if (focus == World.WorldFocus.Focused || focus == World.WorldFocus.Background)
-                WorldConnectorPatch.ChangeFocus((WorldConnector) world.Connector, focus);
+            {
+                var connector = (WorldConnector) world.Connector;
+                if (connector?.WorldRoot != null) connector.WorldRoot.SetActive(focus == World.WorldFocus.Focused);
+            }
             //since the world state is constantly shifting we have to encapsulate them with try catch to prevent crashes
             var count = 0;
             try
@@ -255,6 +258,10 @@ namespace Thundaga
                         }
                         ___engine.InputInterface.UpdateWindowResolution(new int2(Screen.width,
                             Screen.height));
+
+                        var mouse = UnityEngine.InputSystem.Mouse.current;
+                        if (mouse != null) MouseDriverPatch.NewDirectDelta += mouse.delta.ReadValue().ToNeos();
+
                         //___engine.RunUpdateLoop(6.0);
                         var packets = PacketManager.GetQueuedPackets();
                         foreach (var packet in packets)
